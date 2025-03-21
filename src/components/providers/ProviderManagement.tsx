@@ -31,8 +31,6 @@ import {
 interface Provider {
   id: string;
   name: string;
-  email: string;
-  phone?: string;
   color: string;
   status: "active" | "inactive";
 }
@@ -49,96 +47,72 @@ const ProviderManagement = ({
     {
       id: "1",
       name: "Bibiana Patrick",
-      email: "bibiana.patrick@example.com",
-      phone: "(555) 123-4567",
       color: "#8BC34A",
       status: "active",
     },
     {
       id: "2",
       name: "Joy Ferro",
-      email: "joy.ferro@example.com",
-      phone: "(555) 987-6543",
       color: "#FF9800",
       status: "active",
     },
     {
       id: "3",
       name: "Julia Friederich",
-      email: "julia.friederich@example.com",
-      phone: "(555) 456-7890",
       color: "#E91E63",
       status: "active",
     },
     {
       id: "4",
       name: "John Pound",
-      email: "john.pound@example.com",
-      phone: "(555) 234-5678",
       color: "#607D8B",
       status: "active",
     },
     {
       id: "5",
       name: "Jim Knox",
-      email: "jim.knox@example.com",
-      phone: "(555) 876-5432",
       color: "#9E9D24",
       status: "active",
     },
     {
       id: "6",
       name: "Ludjelie Manigat",
-      email: "ludjelie.manigat@example.com",
-      phone: "(555) 345-6789",
       color: "#673AB7",
       status: "active",
     },
     {
       id: "7",
       name: "Tiffany Good",
-      email: "tiffany.good@example.com",
-      phone: "(555) 765-4321",
       color: "#00BCD4",
       status: "active",
     },
     {
       id: "8",
       name: "Elizabeth Swaggerty",
-      email: "elizabeth.swaggerty@example.com",
-      phone: "(555) 456-7890",
       color: "#4CAF50",
       status: "active",
     },
     {
       id: "9",
       name: "Philip Sutherland",
-      email: "philip.sutherland@example.com",
-      phone: "(555) 654-3210",
       color: "#2196F3",
       status: "active",
     },
     {
       id: "10",
       name: "Carlos Mondragon",
-      email: "carlos.mondragon@example.com",
-      phone: "(555) 567-8901",
       color: "#795548",
       status: "active",
     },
     {
       id: "11",
       name: "Olivia Gonzales",
-      email: "olivia.gonzales@example.com",
-      phone: "(555) 678-9012",
       color: "#689F38",
       status: "active",
     },
     {
       id: "12",
       name: "Heidi Kelly",
-      email: "heidi.kelly@example.com",
-      phone: "(555) 789-0123",
       color: "#F48FB1",
       status: "active",
     },
@@ -154,34 +128,26 @@ const ProviderManagement = ({
   const [currentProvider, setCurrentProvider] = useState<Provider | null>(null);
   const [newProvider, setNewProvider] = useState<Partial<Provider>>({
     name: "",
-    email: "",
-    phone: "",
     color: "#4CAF50",
     status: "active",
   });
 
   // Filter providers based on search term
-  const filteredProviders = providers.filter(
-    (provider) =>
-      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredProviders = providers.filter((provider) =>
+    provider.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleAddProvider = () => {
-    if (newProvider.name && newProvider.email && newProvider.color) {
+    if (newProvider.name && newProvider.color) {
       const provider: Provider = {
         id: Date.now().toString(),
         name: newProvider.name,
-        email: newProvider.email,
-        phone: newProvider.phone || "",
         color: newProvider.color,
         status: (newProvider.status as "active" | "inactive") || "active",
       };
       setProviders([...providers, provider]);
       setNewProvider({
         name: "",
-        email: "",
-        phone: "",
         color: "#4CAF50",
         status: "active",
       });
@@ -190,7 +156,7 @@ const ProviderManagement = ({
   };
 
   const handleEditProvider = () => {
-    if (currentProvider && currentProvider.name && currentProvider.email) {
+    if (currentProvider && currentProvider.name) {
       const updatedProviders = providers.map((provider) =>
         provider.id === currentProvider.id ? currentProvider : provider,
       );
@@ -261,33 +227,7 @@ const ProviderManagement = ({
                   className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="email" className="text-right font-medium">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newProvider.email}
-                  onChange={(e) =>
-                    setNewProvider({ ...newProvider, email: e.target.value })
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="phone" className="text-right font-medium">
-                  Phone
-                </label>
-                <Input
-                  id="phone"
-                  value={newProvider.phone}
-                  onChange={(e) =>
-                    setNewProvider({ ...newProvider, phone: e.target.value })
-                  }
-                  className="col-span-3"
-                />
-              </div>
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="color" className="text-right font-medium">
                   Color
@@ -364,8 +304,7 @@ const ProviderManagement = ({
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+
               <TableHead>Color</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -376,8 +315,7 @@ const ProviderManagement = ({
               filteredProviders.map((provider) => (
                 <TableRow key={provider.id}>
                   <TableCell className="font-medium">{provider.name}</TableCell>
-                  <TableCell>{provider.email}</TableCell>
-                  <TableCell>{provider.phone}</TableCell>
+
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div
@@ -454,45 +392,7 @@ const ProviderManagement = ({
                                   className="col-span-3"
                                 />
                               </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <label
-                                  htmlFor="edit-email"
-                                  className="text-right font-medium"
-                                >
-                                  Email
-                                </label>
-                                <Input
-                                  id="edit-email"
-                                  type="email"
-                                  value={currentProvider.email}
-                                  onChange={(e) =>
-                                    setCurrentProvider({
-                                      ...currentProvider,
-                                      email: e.target.value,
-                                    })
-                                  }
-                                  className="col-span-3"
-                                />
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <label
-                                  htmlFor="edit-phone"
-                                  className="text-right font-medium"
-                                >
-                                  Phone
-                                </label>
-                                <Input
-                                  id="edit-phone"
-                                  value={currentProvider.phone}
-                                  onChange={(e) =>
-                                    setCurrentProvider({
-                                      ...currentProvider,
-                                      phone: e.target.value,
-                                    })
-                                  }
-                                  className="col-span-3"
-                                />
-                              </div>
+
                               <div className="grid grid-cols-4 items-center gap-4">
                                 <label
                                   htmlFor="edit-color"
@@ -601,9 +501,6 @@ const ProviderManagement = ({
                             <div className="py-4">
                               <p className="font-medium">
                                 {currentProvider.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {currentProvider.email}
                               </p>
                             </div>
                           )}

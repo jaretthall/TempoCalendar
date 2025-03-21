@@ -89,22 +89,22 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
       clinicTypes.forEach((clinicType) => {
         // Add a shift every 3 days for each provider/clinic combination
         for (let i = 0; i < 90; i += 3) {
-          const shiftDate = new Date(startDate);
-          shiftDate.setDate(startDate.getDate() + i);
+          const shiftDate = new Date(startOfMonth(baseMonth));
+          shiftDate.setDate(shiftDate.getDate() + i);
 
           // Skip weekends for some variety
           const day = shiftDate.getDay();
           if (day === 0 || day === 6) continue;
 
-          const startDate = new Date(shiftDate);
-          const endDate = new Date(shiftDate);
+          const shiftStartDate = new Date(shiftDate);
+          const shiftEndDate = new Date(shiftDate);
 
           result.push({
             id: `mock-${provider.id}-${clinicType.id}-${i}`,
             providerId: provider.id,
             clinicTypeId: clinicType.id,
-            startDate,
-            endDate,
+            startDate: shiftStartDate,
+            endDate: shiftEndDate,
             isVacation: Math.random() > 0.9, // 10% chance of being vacation
             notes: Math.random() > 0.7 ? "Sample shift notes" : undefined,
           });

@@ -21,41 +21,18 @@ function App() {
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/home" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route
-              path="/providers"
-              element={
-                <ProtectedRoute>
-                  <ProviderManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/clinics"
-              element={
-                <ProtectedRoute>
-                  <ClinicTypeManagement />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/providers" element={<ProviderManagement />} />
+            <Route path="/clinics" element={<ClinicTypeManagement />} />
             <Route
               path="/notes"
               element={
-                <ProtectedRoute>
-                  <div className="p-8">
-                    <h1 className="text-2xl font-bold mb-4">Calendar Notes</h1>
-                    <p>Notes functionality coming soon.</p>
-                  </div>
-                </ProtectedRoute>
+                <div className="p-8">
+                  <h1 className="text-2xl font-bold mb-4">Calendar Notes</h1>
+                  <p>Notes functionality coming soon.</p>
+                </div>
               }
             />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/settings" element={<Settings />} />
             {import.meta.env.VITE_TEMPO === "true" && (
               <Route path="/tempobook/*" element={null} />
             )}
