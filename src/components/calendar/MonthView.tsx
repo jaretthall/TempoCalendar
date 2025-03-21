@@ -20,13 +20,14 @@ import {
 } from "@/components/ui/tooltip";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CalendarNotes from "./CalendarNotes";
 
 interface Shift {
   id: string;
   providerId: string;
   clinicTypeId: string;
-  startTime: Date;
-  endTime: Date;
+  startDate: Date;
+  endDate: Date;
   isVacation: boolean;
   notes?: string;
 }
@@ -104,20 +105,12 @@ const MonthView: React.FC<MonthViewProps> = ({
             id: "1",
             providerId: "1",
             clinicTypeId: "1",
-            startTime: new Date(
+            startDate: new Date(
               viewDate.getFullYear(),
               viewDate.getMonth(),
               10,
-              9,
-              0,
             ),
-            endTime: new Date(
-              viewDate.getFullYear(),
-              viewDate.getMonth(),
-              10,
-              17,
-              0,
-            ),
+            endDate: new Date(viewDate.getFullYear(), viewDate.getMonth(), 10),
             isVacation: false,
             notes: "Regular shift",
           },
@@ -125,20 +118,12 @@ const MonthView: React.FC<MonthViewProps> = ({
             id: "2",
             providerId: "2",
             clinicTypeId: "2",
-            startTime: new Date(
+            startDate: new Date(
               viewDate.getFullYear(),
               viewDate.getMonth(),
               15,
-              10,
-              0,
             ),
-            endTime: new Date(
-              viewDate.getFullYear(),
-              viewDate.getMonth(),
-              15,
-              18,
-              0,
-            ),
+            endDate: new Date(viewDate.getFullYear(), viewDate.getMonth(), 15),
             isVacation: false,
             notes: "Specialty clinic",
           },
@@ -146,40 +131,20 @@ const MonthView: React.FC<MonthViewProps> = ({
             id: "3",
             providerId: "3",
             clinicTypeId: "3",
-            startTime: new Date(
+            startDate: new Date(
               viewDate.getFullYear(),
               viewDate.getMonth(),
               20,
-              8,
-              0,
             ),
-            endTime: new Date(
-              viewDate.getFullYear(),
-              viewDate.getMonth(),
-              20,
-              16,
-              0,
-            ),
+            endDate: new Date(viewDate.getFullYear(), viewDate.getMonth(), 20),
             isVacation: false,
           },
           {
             id: "4",
             providerId: "1",
             clinicTypeId: "1",
-            startTime: new Date(
-              viewDate.getFullYear(),
-              viewDate.getMonth(),
-              5,
-              9,
-              0,
-            ),
-            endTime: new Date(
-              viewDate.getFullYear(),
-              viewDate.getMonth(),
-              5,
-              17,
-              0,
-            ),
+            startDate: new Date(viewDate.getFullYear(), viewDate.getMonth(), 5),
+            endDate: new Date(viewDate.getFullYear(), viewDate.getMonth(), 5),
             isVacation: true,
             notes: "Vacation day",
           },
@@ -188,7 +153,7 @@ const MonthView: React.FC<MonthViewProps> = ({
   // Get shifts for a specific day
   const getShiftsForDay = (day: Date) => {
     return mockShifts.filter((shift) => {
-      const shiftDate = new Date(shift.startTime);
+      const shiftDate = new Date(shift.startDate);
       return (
         shiftDate.getDate() === day.getDate() &&
         shiftDate.getMonth() === day.getMonth() &&
@@ -225,8 +190,6 @@ const MonthView: React.FC<MonthViewProps> = ({
   const renderShift = (shift: Shift, index: number, totalShifts: number) => {
     const provider = getProvider(shift.providerId);
     const clinicType = getClinicType(shift.clinicTypeId);
-    const startTime = format(shift.startTime, "h:mm a");
-    const endTime = format(shift.endTime, "h:mm a");
 
     // Determine if we should show compact view (squares) based on number of shifts
     const isCompact = totalShifts > 4;
@@ -261,9 +224,6 @@ const MonthView: React.FC<MonthViewProps> = ({
                   <span className="font-medium">
                     {shift.isVacation ? "🏖️ Vacation" : provider.name}
                   </span>
-                  <span className="ml-1 opacity-90">
-                    {startTime} - {endTime}
-                  </span>
                 </>
               )}
               {isCompact && shift.isVacation && (
@@ -277,9 +237,6 @@ const MonthView: React.FC<MonthViewProps> = ({
             <div>
               <div className="font-bold">{provider.name}</div>
               <div>{clinicType.name}</div>
-              <div>
-                {startTime} - {endTime}
-              </div>
               {shift.isVacation && (
                 <div className="mt-1 font-semibold text-purple-600">
                   Vacation
@@ -368,47 +325,83 @@ const MonthView: React.FC<MonthViewProps> = ({
   }
 
   return (
-    <Card className="w-full h-full bg-white">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl">
-            {format(viewDate, "MMMM yyyy")}
-          </CardTitle>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={prevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const today = new Date();
-                setViewDate(today);
-                onNavigate(today);
-              }}
-            >
-              Today
-            </Button>
-            <Button variant="outline" size="sm" onClick={nextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-2">
-        <div className="grid grid-cols-7 gap-0">
-          {/* Day names header */}
-          {dayNames.map((day, index) => (
-            <div key={index} className="text-center py-2 font-medium text-sm">
-              {day}
+    <div className="flex flex-col h-full">
+      <Card className="w-full flex-1 bg-white">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl">
+              {format(viewDate, "MMMM yyyy")}
+            </CardTitle>
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" onClick={prevMonth}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const today = new Date();
+                  setViewDate(today);
+                  onNavigate(today);
+                }}
+              >
+                Today
+              </Button>
+              <Button variant="outline" size="sm" onClick={nextMonth}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          ))}
+          </div>
+        </CardHeader>
+        <CardContent className="p-2">
+          <div className="grid grid-cols-7 gap-0">
+            {/* Day names header */}
+            {dayNames.map((day, index) => (
+              <div key={index} className="text-center py-2 font-medium text-sm">
+                {day}
+              </div>
+            ))}
 
-          {/* Calendar grid */}
-          {totalCells.map((day, index) => renderDay(day, index))}
-        </div>
-      </CardContent>
-    </Card>
+            {/* Calendar grid */}
+            {totalCells.map((day, index) => renderDay(day, index))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notes Section */}
+      <div className="mt-4">
+        <CalendarNotes
+          date={viewDate}
+          notes="<p>This is the schedule for all providers this month. Please check with the clinic before making any changes to your personal schedule.</p><p>Reminder: All vacation requests must be submitted at least 2 weeks in advance.</p>"
+          comments={[
+            {
+              id: "1",
+              author: "Dr. Smith",
+              authorId: "1",
+              content: "I'll be attending the medical conference on the 15th.",
+              createdAt: new Date(
+                viewDate.getFullYear(),
+                viewDate.getMonth(),
+                5,
+              ),
+            },
+            {
+              id: "2",
+              author: "Admin",
+              authorId: "admin1",
+              content:
+                "Please note that the clinic will be closed for maintenance on the last weekend of the month.",
+              createdAt: new Date(
+                viewDate.getFullYear(),
+                viewDate.getMonth(),
+                10,
+              ),
+            },
+          ]}
+          isAdmin={true}
+        />
+      </div>
+    </div>
   );
 };
 

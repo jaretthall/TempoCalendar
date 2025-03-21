@@ -4,6 +4,11 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import CalendarView from "@/components/calendar/CalendarView";
 import ShiftDialog from "@/components/shifts/ShiftDialog";
+import ImportDataDialog from "@/components/import/ImportDataDialog";
+import ReadOnlyBanner from "@/components/layout/ReadOnlyBanner";
+import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Shift {
   id: string;
@@ -46,29 +51,36 @@ interface ClinicType {
 
 const Calendar: React.FC = () => {
   const navigate = useNavigate();
+  const { session, signOut } = useAuth();
+  const isAdmin = session.isAdmin;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isEditing, setIsEditing] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
-  // Mock data for providers
-  const providers: Provider[] = [
-    { id: "1", name: "Dr. Smith", color: "#4f46e5", isActive: true },
-    { id: "2", name: "Dr. Johnson", color: "#10b981", isActive: true },
-    { id: "3", name: "Dr. Williams", color: "#f59e0b", isActive: true },
-    { id: "4", name: "Dr. Brown", color: "#ec4899", isActive: true },
-    { id: "5", name: "Dr. Davis", color: "#6366f1", isActive: false },
-  ];
+  // Provider data with state management
+  const [providers, setProviders] = useState<Provider[]>([
+    { id: "1", name: "Bibiana Patrick", color: "#8BC34A", isActive: true },
+    { id: "2", name: "Joy Ferro", color: "#FF9800", isActive: true },
+    { id: "3", name: "Julia Friederich", color: "#E91E63", isActive: true },
+    { id: "4", name: "John Pound", color: "#607D8B", isActive: true },
+    { id: "5", name: "Jim Knox", color: "#9E9D24", isActive: true },
+    { id: "6", name: "Ludjelie Manigat", color: "#673AB7", isActive: true },
+    { id: "7", name: "Tiffany Good", color: "#00BCD4", isActive: true },
+    { id: "8", name: "Elizabeth Swaggerty", color: "#4CAF50", isActive: true },
+    { id: "9", name: "Philip Sutherland", color: "#2196F3", isActive: true },
+    { id: "10", name: "Carlos Mondragon", color: "#795548", isActive: true },
+    { id: "11", name: "Olivia Gonzales", color: "#689F38", isActive: true },
+    { id: "12", name: "Heidi Kelly", color: "#F48FB1", isActive: true },
+  ]);
 
-  // Mock data for clinic types
-  const clinicTypes: ClinicType[] = [
-    { id: "1", name: "Primary Care", color: "#3b82f6", isActive: true },
-    { id: "2", name: "Specialty", color: "#ec4899", isActive: true },
-    { id: "3", name: "Urgent Care", color: "#ef4444", isActive: true },
-    { id: "4", name: "Pediatrics", color: "#8b5cf6", isActive: true },
-    { id: "5", name: "Geriatrics", color: "#f97316", isActive: false },
-  ];
+  // Clinic type data with state management
+  const [clinicTypes, setClinicTypes] = useState<ClinicType[]>([
+    { id: "1", name: "Clinica Medicos", color: "#4CAF50", isActive: true },
+    { id: "2", name: "Urgent Care", color: "#FF9800", isActive: true },
+  ]);
 
   // Mock data for shifts
   const [shifts, setShifts] = useState<Shift[]>([
@@ -79,24 +91,25 @@ const Calendar: React.FC = () => {
       startTime: new Date(new Date().setHours(9, 0, 0, 0)),
       endTime: new Date(new Date().setHours(17, 0, 0, 0)),
       isVacation: false,
-      notes: "Regular shift",
+      notes: "Regular shift at Clinica Medicos",
     },
     {
       id: "2",
       providerId: "2",
-      clinicTypeId: "2",
+      clinicTypeId: "1",
       startTime: new Date(new Date().setDate(new Date().getDate() + 1)),
       endTime: new Date(new Date().setDate(new Date().getDate() + 1)),
       isVacation: false,
-      notes: "Specialty clinic",
+      notes: "Clinica Medicos shift",
     },
     {
       id: "3",
       providerId: "3",
-      clinicTypeId: "3",
+      clinicTypeId: "1",
       startTime: new Date(new Date().setDate(new Date().getDate() + 3)),
       endTime: new Date(new Date().setDate(new Date().getDate() + 3)),
       isVacation: false,
+      notes: "Clinica Medicos shift",
     },
     {
       id: "4",
@@ -109,21 +122,23 @@ const Calendar: React.FC = () => {
     },
   ]);
 
+  // State for monthly notes
+  const [monthlyNotes, setMonthlyNotes] = useState<any[]>([]);
+
   // Toggle sidebar collapsed state
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
   // Handle logout
-  const handleLogout = () => {
-    // In a real app, this would handle authentication logout
-    console.log("User logged out");
-    // Redirect to login page
+  const handleLogout = async () => {
+    await signOut();
     navigate("/");
   };
 
   // Handle shift click to edit
   const handleShiftClick = (shift: Shift) => {
+    if (!isAdmin) return; // Only allow admins to edit
     setSelectedShift(shift);
     setIsEditing(true);
     setShiftDialogOpen(true);
@@ -131,6 +146,7 @@ const Calendar: React.FC = () => {
 
   // Handle adding a new shift
   const handleAddShift = (date: Date) => {
+    if (!isAdmin) return; // Only allow admins to add
     setSelectedDate(date);
     setSelectedShift(null);
     setIsEditing(false);
@@ -202,11 +218,37 @@ const Calendar: React.FC = () => {
     };
   };
 
+  // Handle importing data
+  const handleImportData = (data: any) => {
+    if (data.providers) {
+      // Replace or merge providers
+      // For simplicity, we're replacing the entire array
+      setProviders(data.providers);
+    }
+
+    if (data.clinicTypes) {
+      // Replace or merge clinic types
+      setClinicTypes(data.clinicTypes);
+    }
+
+    if (data.shifts) {
+      // Replace or merge shifts
+      setShifts(data.shifts);
+    }
+
+    if (data.monthlyNotes) {
+      // Replace or merge monthly notes
+      setMonthlyNotes(data.monthlyNotes);
+    }
+
+    console.log("Data imported successfully:", data);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <Header
-        userName="Admin User"
-        userRole="admin"
+        userName={session.user ? "Admin User" : undefined}
+        userRole={session.user ? "admin" : "public"}
         onToggleSidebar={toggleSidebar}
         onLogout={handleLogout}
       />
@@ -215,6 +257,19 @@ const Calendar: React.FC = () => {
         <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
 
         <main className="flex-1 overflow-auto bg-gray-50">
+          {!session.user && <ReadOnlyBanner />}
+          <div className="p-4 flex justify-end">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => setImportDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Import Data
+              </Button>
+            )}
+          </div>
           <CalendarView
             shifts={shifts}
             providers={providers}
@@ -233,6 +288,12 @@ const Calendar: React.FC = () => {
         onSave={handleSaveShift}
         shift={selectedShiftToFormValues()}
         isEditing={isEditing}
+      />
+
+      <ImportDataDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportData={handleImportData}
       />
     </div>
   );

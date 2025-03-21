@@ -52,8 +52,6 @@ interface ShiftFormValues {
   clinicTypeId: string;
   startDate: Date;
   endDate: Date;
-  startTime: string;
-  endTime: string;
   isVacation: boolean;
   isRecurring: boolean;
   recurrencePattern?: "daily" | "weekly" | "biweekly";
@@ -88,8 +86,6 @@ export default function ShiftDialog({
     clinicTypeId: shift?.clinicTypeId || "",
     startDate: shift?.startDate || new Date(),
     endDate: shift?.endDate || new Date(),
-    startTime: shift?.startTime || "09:00",
-    endTime: shift?.endTime || "17:00",
     isVacation: shift?.isVacation || false,
     isRecurring: shift?.isRecurring || false,
     recurrencePattern: shift?.recurrencePattern || "weekly",
@@ -276,44 +272,6 @@ export default function ShiftDialog({
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Start Time */}
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <div className="flex items-center">
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
-                      <Clock className="ml-2 h-4 w-4 text-gray-400" />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* End Time */}
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <div className="flex items-center">
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
-                      <Clock className="ml-2 h-4 w-4 text-gray-400" />
-                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -37,10 +37,8 @@ interface ClinicTypeManagementProps {
 
 const ClinicTypeManagement: React.FC<ClinicTypeManagementProps> = ({
   clinicTypes = [
-    { id: "1", name: "Primary Care", color: "#4CAF50", isActive: true },
-    { id: "2", name: "Specialty Care", color: "#2196F3", isActive: true },
-    { id: "3", name: "Urgent Care", color: "#FF9800", isActive: true },
-    { id: "4", name: "Telehealth", color: "#9C27B0", isActive: false },
+    { id: "1", name: "Clinica Medicos", color: "#4CAF50", isActive: true },
+    { id: "2", name: "Urgent Care", color: "#FF9800", isActive: true },
   ],
   onAddClinicType = () => {},
   onUpdateClinicType = () => {},

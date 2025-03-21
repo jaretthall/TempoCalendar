@@ -45,9 +45,8 @@ const CalendarToolbar = ({
     { id: "3", name: "Dr. Williams", color: "#FF9800" },
   ],
   clinicTypes = [
-    { id: "1", name: "Primary Care", color: "#E91E63" },
-    { id: "2", name: "Specialty", color: "#9C27B0" },
-    { id: "3", name: "Urgent Care", color: "#F44336" },
+    { id: "1", name: "Clinica Medicos", color: "#4CAF50" },
+    { id: "2", name: "Urgent Care", color: "#FF9800" },
   ],
   view = "month",
 }: CalendarToolbarProps) => {

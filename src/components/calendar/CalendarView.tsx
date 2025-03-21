@@ -46,9 +46,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     { id: "3", name: "Dr. Williams", color: "#f59e0b", isActive: true },
   ],
   clinicTypes = [
-    { id: "1", name: "Primary Care", color: "#3b82f6", isActive: true },
-    { id: "2", name: "Specialty", color: "#ec4899", isActive: true },
-    { id: "3", name: "Urgent Care", color: "#ef4444", isActive: true },
+    { id: "1", name: "Clinica Medicos", color: "#4CAF50", isActive: true },
+    { id: "2", name: "Urgent Care", color: "#FF9800", isActive: true },
   ],
   onShiftClick = () => {},
   onAddShift = () => {},

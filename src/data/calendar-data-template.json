@@ -1,0 +1,315 @@
+{
+  "providers": [
+    { "id": "1", "name": "Dr. Smith", "color": "#4f46e5", "isActive": true },
+    { "id": "2", "name": "Dr. Johnson", "color": "#10b981", "isActive": true },
+    { "id": "3", "name": "Dr. Williams", "color": "#f59e0b", "isActive": true },
+    { "id": "4", "name": "Dr. Brown", "color": "#ec4899", "isActive": true },
+    { "id": "5", "name": "Dr. Davis", "color": "#6366f1", "isActive": true },
+    { "id": "6", "name": "Dr. Miller", "color": "#8b5cf6", "isActive": false }
+  ],
+  "clinicTypes": [
+    { "id": "1", "name": "Primary Care", "color": "#3b82f6", "isActive": true },
+    { "id": "2", "name": "Specialty", "color": "#ec4899", "isActive": true },
+    { "id": "3", "name": "Urgent Care", "color": "#ef4444", "isActive": true },
+    { "id": "4", "name": "Pediatrics", "color": "#8b5cf6", "isActive": true },
+    { "id": "5", "name": "Geriatrics", "color": "#f97316", "isActive": true },
+    { "id": "6", "name": "Surgery", "color": "#14b8a6", "isActive": true }
+  ],
+  "shifts": [
+    {
+      "id": "shift-1",
+      "providerId": "1",
+      "clinicTypeId": "1",
+      "startTime": "2023-06-05T09:00:00.000Z",
+      "endTime": "2023-06-05T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Regular primary care shift",
+      "location": "Main Clinic"
+    },
+    {
+      "id": "shift-2",
+      "providerId": "2",
+      "clinicTypeId": "2",
+      "startTime": "2023-06-06T10:00:00.000Z",
+      "endTime": "2023-06-06T18:00:00.000Z",
+      "isVacation": false,
+      "notes": "Specialty clinic consultations",
+      "location": "North Branch"
+    },
+    {
+      "id": "shift-3",
+      "providerId": "3",
+      "clinicTypeId": "3",
+      "startTime": "2023-06-07T08:00:00.000Z",
+      "endTime": "2023-06-07T16:00:00.000Z",
+      "isVacation": false,
+      "notes": "Urgent care coverage",
+      "location": "East Wing"
+    },
+    {
+      "id": "shift-4",
+      "providerId": "4",
+      "clinicTypeId": "4",
+      "startTime": "2023-06-08T09:00:00.000Z",
+      "endTime": "2023-06-08T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Pediatric appointments",
+      "location": "Children's Wing"
+    },
+    {
+      "id": "shift-5",
+      "providerId": "5",
+      "clinicTypeId": "5",
+      "startTime": "2023-06-09T10:00:00.000Z",
+      "endTime": "2023-06-09T16:00:00.000Z",
+      "isVacation": false,
+      "notes": "Geriatric consultations",
+      "location": "Senior Care Center"
+    },
+    {
+      "id": "shift-6",
+      "providerId": "1",
+      "clinicTypeId": "1",
+      "startTime": "2023-06-12T09:00:00.000Z",
+      "endTime": "2023-06-12T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Follow-up appointments",
+      "location": "Main Clinic"
+    },
+    {
+      "id": "shift-7",
+      "providerId": "2",
+      "clinicTypeId": "6",
+      "startTime": "2023-06-13T07:00:00.000Z",
+      "endTime": "2023-06-13T15:00:00.000Z",
+      "isVacation": false,
+      "notes": "Surgery day",
+      "location": "Surgical Center"
+    },
+    {
+      "id": "shift-8",
+      "providerId": "3",
+      "clinicTypeId": "3",
+      "startTime": "2023-06-14T12:00:00.000Z",
+      "endTime": "2023-06-14T20:00:00.000Z",
+      "isVacation": false,
+      "notes": "Evening urgent care",
+      "location": "East Wing"
+    },
+    {
+      "id": "shift-9",
+      "providerId": "4",
+      "clinicTypeId": "4",
+      "startTime": "2023-06-15T09:00:00.000Z",
+      "endTime": "2023-06-15T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Pediatric wellness checks",
+      "location": "Children's Wing"
+    },
+    {
+      "id": "shift-10",
+      "providerId": "1",
+      "clinicTypeId": "1",
+      "startTime": "2023-06-19T09:00:00.000Z",
+      "endTime": "2023-06-23T17:00:00.000Z",
+      "isVacation": true,
+      "notes": "Annual vacation",
+      "location": ""
+    },
+    {
+      "id": "shift-11",
+      "providerId": "2",
+      "clinicTypeId": "2",
+      "startTime": "2023-06-20T10:00:00.000Z",
+      "endTime": "2023-06-20T18:00:00.000Z",
+      "isVacation": false,
+      "notes": "Specialty consultations",
+      "location": "North Branch"
+    },
+    {
+      "id": "shift-12",
+      "providerId": "5",
+      "clinicTypeId": "5",
+      "startTime": "2023-06-21T09:00:00.000Z",
+      "endTime": "2023-06-21T15:00:00.000Z",
+      "isVacation": false,
+      "notes": "Geriatric assessments",
+      "location": "Senior Care Center"
+    },
+    {
+      "id": "shift-13",
+      "providerId": "3",
+      "clinicTypeId": "3",
+      "startTime": "2023-06-22T08:00:00.000Z",
+      "endTime": "2023-06-22T16:00:00.000Z",
+      "isVacation": false,
+      "notes": "Urgent care coverage",
+      "location": "East Wing"
+    },
+    {
+      "id": "shift-14",
+      "providerId": "4",
+      "clinicTypeId": "4",
+      "startTime": "2023-06-23T09:00:00.000Z",
+      "endTime": "2023-06-23T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Pediatric appointments",
+      "location": "Children's Wing"
+    },
+    {
+      "id": "shift-15",
+      "providerId": "5",
+      "clinicTypeId": "6",
+      "startTime": "2023-06-26T07:00:00.000Z",
+      "endTime": "2023-06-26T15:00:00.000Z",
+      "isVacation": false,
+      "notes": "Surgery assistance",
+      "location": "Surgical Center"
+    },
+    {
+      "id": "shift-16",
+      "providerId": "2",
+      "clinicTypeId": "2",
+      "startTime": "2023-06-27T10:00:00.000Z",
+      "endTime": "2023-06-27T18:00:00.000Z",
+      "isVacation": false,
+      "notes": "Specialty clinic",
+      "location": "North Branch"
+    },
+    {
+      "id": "shift-17",
+      "providerId": "3",
+      "clinicTypeId": "1",
+      "startTime": "2023-06-28T09:00:00.000Z",
+      "endTime": "2023-06-28T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Covering for Dr. Smith",
+      "location": "Main Clinic"
+    },
+    {
+      "id": "shift-18",
+      "providerId": "4",
+      "clinicTypeId": "4",
+      "startTime": "2023-06-29T09:00:00.000Z",
+      "endTime": "2023-06-29T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Pediatric wellness checks",
+      "location": "Children's Wing"
+    },
+    {
+      "id": "shift-19",
+      "providerId": "5",
+      "clinicTypeId": "5",
+      "startTime": "2023-06-30T10:00:00.000Z",
+      "endTime": "2023-06-30T16:00:00.000Z",
+      "isVacation": false,
+      "notes": "Geriatric consultations",
+      "location": "Senior Care Center"
+    },
+    {
+      "id": "shift-20",
+      "providerId": "1",
+      "clinicTypeId": "1",
+      "startTime": "2023-07-03T09:00:00.000Z",
+      "endTime": "2023-07-03T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Regular primary care shift",
+      "location": "Main Clinic"
+    },
+    {
+      "id": "shift-21",
+      "providerId": "2",
+      "clinicTypeId": "2",
+      "startTime": "2023-07-05T10:00:00.000Z",
+      "endTime": "2023-07-05T18:00:00.000Z",
+      "isVacation": false,
+      "notes": "Specialty consultations",
+      "location": "North Branch"
+    },
+    {
+      "id": "shift-22",
+      "providerId": "3",
+      "clinicTypeId": "3",
+      "startTime": "2023-07-04T08:00:00.000Z",
+      "endTime": "2023-07-04T16:00:00.000Z",
+      "isVacation": true,
+      "notes": "Holiday - Independence Day",
+      "location": ""
+    },
+    {
+      "id": "shift-23",
+      "providerId": "4",
+      "clinicTypeId": "4",
+      "startTime": "2023-07-06T09:00:00.000Z",
+      "endTime": "2023-07-06T17:00:00.000Z",
+      "isVacation": false,
+      "notes": "Pediatric appointments",
+      "location": "Children's Wing"
+    },
+    {
+      "id": "shift-24",
+      "providerId": "5",
+      "clinicTypeId": "5",
+      "startTime": "2023-07-07T10:00:00.000Z",
+      "endTime": "2023-07-07T16:00:00.000Z",
+      "isVacation": false,
+      "notes": "Geriatric consultations",
+      "location": "Senior Care Center"
+    }
+  ],
+  "monthlyNotes": [
+    {
+      "month": "2023-06",
+      "notes": "<p><strong>June 2023 Schedule Notes</strong></p><p>Please be aware of the following important information for this month:</p><ul><li>Staff meeting scheduled for June 5th at 8:00 AM</li><li>Clinic will close early (3:00 PM) on June 16th for system maintenance</li><li>Dr. Smith will be on vacation from June 19-23</li><li>New pediatric vaccination program starts June 15th</li></ul><p>Remember to submit all time-off requests for July by June 15th.</p>",
+      "comments": [
+        {
+          "id": "comment-1",
+          "author": "Dr. Johnson",
+          "authorId": "2",
+          "content": "I'll be presenting the new treatment protocols at the staff meeting.",
+          "createdAt": "2023-06-01T10:30:00.000Z"
+        },
+        {
+          "id": "comment-2",
+          "author": "Dr. Williams",
+          "authorId": "3",
+          "content": "I can cover Dr. Smith's patients during the vacation week.",
+          "createdAt": "2023-06-02T14:15:00.000Z"
+        }
+      ]
+    },
+    {
+      "month": "2023-07",
+      "notes": "<p><strong>July 2023 Schedule Notes</strong></p><p>Important announcements for July:</p><ul><li>Clinic closed on July 4th for Independence Day</li><li>Summer coverage schedule in effect - please check your assignments</li><li>Quarterly review meetings scheduled for the last week of July</li><li>New electronic health record system training: July 10-14</li></ul><p>The air conditioning system will be undergoing maintenance on weekends - please dress accordingly if you're scheduled for weekend shifts.</p>",
+      "comments": [
+        {
+          "id": "comment-3",
+          "author": "Dr. Brown",
+          "authorId": "4",
+          "content": "I'll need coverage for my July 12th shift due to the EHR training.",
+          "createdAt": "2023-06-28T09:45:00.000Z"
+        },
+        {
+          "id": "comment-4",
+          "author": "Dr. Davis",
+          "authorId": "5",
+          "content": "I can take extra weekend shifts in July if needed.",
+          "createdAt": "2023-06-30T11:20:00.000Z"
+        }
+      ]
+    },
+    {
+      "month": "2023-08",
+      "notes": "<p><strong>August 2023 Schedule Notes</strong></p><p>Key information for August:</p><ul><li>Annual provider certifications due by August 15th</li><li>Back-to-school physical appointment blocks have been added</li><li>Staff appreciation lunch: August 18th at noon</li><li>Clinic will be fully staffed on weekends to accommodate back-to-school rush</li></ul><p>Please submit your September availability by August 10th.</p>",
+      "comments": [
+        {
+          "id": "comment-5",
+          "author": "Dr. Smith",
+          "authorId": "1",
+          "content": "I'll be attending a conference August 24-26 and will need coverage.",
+          "createdAt": "2023-07-25T13:10:00.000Z"
+        }
+      ]
+    }
+  ]
+}
