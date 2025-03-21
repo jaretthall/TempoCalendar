@@ -8,6 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { Edit, Save, MessageSquare, Send } from "lucide-react";
 import RichTextEditor from "./RichTextEditor";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Comment {
   id: string;
@@ -48,35 +50,222 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
   const [editedNotes, setEditedNotes] = useState(notes);
   const [newComment, setNewComment] = useState("");
   const [displayComments, setDisplayComments] = useState<Comment[]>(comments);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Format date as YYYY-MM-DD for database
+  const formattedDate = format(date, "yyyy-MM-dd");
+
+  // Fetch notes and comments from Supabase
+  const fetchNotesAndComments = async () => {
+    try {
+      setIsLoading(true);
+
+      // Fetch notes
+      const { data: notesData, error: notesError } = await supabase
+        .from("calendar_notes")
+        .select("*")
+        .eq("date", formattedDate)
+        .single();
+
+      if (notesError && notesError.code !== "PGRST116") {
+        // PGRST116 is "not found"
+        console.error("Error fetching notes:", notesError);
+        toast({
+          title: "Error",
+          description: "Failed to load notes",
+          variant: "destructive",
+        });
+      }
+
+      if (notesData) {
+        setEditedNotes(notesData.notes);
+      }
+
+      // Fetch comments
+      const { data: commentsData, error: commentsError } = await supabase
+        .from("calendar_comments")
+        .select("*")
+        .eq("date", formattedDate)
+        .order("created_at", { ascending: true });
+
+      if (commentsError) {
+        console.error("Error fetching comments:", commentsError);
+        toast({
+          title: "Error",
+          description: "Failed to load comments",
+          variant: "destructive",
+        });
+      }
+
+      if (commentsData) {
+        const formattedComments = commentsData.map((comment) => ({
+          id: comment.id,
+          author: comment.author,
+          authorId: comment.author_id,
+          avatarUrl: comment.avatar_url,
+          content: comment.content,
+          createdAt: new Date(comment.created_at),
+        }));
+        setDisplayComments(formattedComments);
+      }
+    } catch (error) {
+      console.error("Error in fetchNotesAndComments:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotesAndComments();
+
+    // Set up realtime subscription for comments
+    const commentsSubscription = supabase
+      .channel("calendar_comments_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "calendar_comments",
+          filter: `date=eq.${formattedDate}`,
+        },
+        fetchNotesAndComments,
+      )
+      .subscribe();
+
+    // Set up realtime subscription for notes
+    const notesSubscription = supabase
+      .channel("calendar_notes_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "calendar_notes",
+          filter: `date=eq.${formattedDate}`,
+        },
+        fetchNotesAndComments,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(commentsSubscription);
+      supabase.removeChannel(notesSubscription);
+    };
+  }, [formattedDate]);
 
   useEffect(() => {
     setEditedNotes(notes);
   }, [notes]);
 
-  useEffect(() => {
-    setDisplayComments(comments);
-  }, [comments]);
+  const handleSaveNotes = async () => {
+    try {
+      setIsLoading(true);
 
-  const handleSaveNotes = () => {
-    onSaveNotes(editedNotes);
-    setIsEditing(false);
+      // Check if notes already exist for this date
+      const { data: existingNote, error: checkError } = await supabase
+        .from("calendar_notes")
+        .select("id")
+        .eq("date", formattedDate)
+        .single();
+
+      let result;
+
+      if (existingNote) {
+        // Update existing note
+        result = await supabase
+          .from("calendar_notes")
+          .update({
+            notes: editedNotes,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingNote.id);
+      } else {
+        // Insert new note
+        result = await supabase.from("calendar_notes").insert({
+          date: formattedDate,
+          notes: editedNotes,
+          user_id: currentUser.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      onSaveNotes(editedNotes);
+      setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Notes saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save notes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (newComment.trim()) {
-      // In a real app, this would be handled by the backend
-      const newCommentObj: Comment = {
-        id: `comment-${Date.now()}`,
-        author: currentUser.name,
-        authorId: currentUser.id,
-        avatarUrl: currentUser.avatarUrl,
-        content: newComment,
-        createdAt: new Date(),
-      };
+      try {
+        setIsLoading(true);
 
-      setDisplayComments([...displayComments, newCommentObj]);
-      onAddComment(newComment);
-      setNewComment("");
+        // Insert comment into Supabase
+        const { error } = await supabase.from("calendar_comments").insert({
+          date: formattedDate,
+          author: currentUser.name,
+          author_id: currentUser.id,
+          avatar_url: currentUser.avatarUrl,
+          content: newComment,
+          created_at: new Date().toISOString(),
+          user_id: currentUser.id,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        // In a real app, this would be handled by the backend
+        const newCommentObj: Comment = {
+          id: `comment-${Date.now()}`,
+          author: currentUser.name,
+          authorId: currentUser.id,
+          avatarUrl: currentUser.avatarUrl,
+          content: newComment,
+          createdAt: new Date(),
+        };
+
+        setDisplayComments([...displayComments, newCommentObj]);
+        onAddComment(newComment);
+        setNewComment("");
+        toast({
+          title: "Success",
+          description: "Comment added successfully",
+        });
+      } catch (error) {
+        console.error("Error adding comment:", error);
+        toast({
+          title: "Error",
+          description: "Failed to add comment",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -99,6 +288,7 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => setIsEditing(!isEditing)}
+              disabled={isLoading}
             >
               {isEditing ? (
                 <Save className="h-4 w-4 mr-2" />
@@ -130,20 +320,25 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
                       setIsEditing(false);
                       setEditedNotes(notes);
                     }}
+                    disabled={isLoading}
                   >
                     Cancel
                   </Button>
-                  <Button size="sm" onClick={handleSaveNotes}>
-                    Save Notes
+                  <Button
+                    size="sm"
+                    onClick={handleSaveNotes}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Saving..." : "Save Notes"}
                   </Button>
                 </div>
               </div>
             ) : (
               <div>
-                {notes ? (
+                {editedNotes ? (
                   <div
                     className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: notes }}
+                    dangerouslySetInnerHTML={{ __html: editedNotes }}
                   />
                 ) : (
                   <p className="text-gray-500 italic">
@@ -218,6 +413,7 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Add a comment..."
                   className="flex-1"
+                  disabled={isLoading}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -228,7 +424,7 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
                 <Button
                   size="sm"
                   onClick={handleAddComment}
-                  disabled={!newComment.trim()}
+                  disabled={!newComment.trim() || isLoading}
                 >
                   <Send className="h-4 w-4" />
                 </Button>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -21,6 +21,7 @@ import {
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CalendarNotes from "./CalendarNotes";
+import { supabase } from "@/lib/supabase";
 
 interface Shift {
   id: string;
@@ -74,6 +75,13 @@ const MonthView: React.FC<MonthViewProps> = ({
   currentDate = new Date(),
 }) => {
   const [viewDate, setViewDate] = useState<Date>(currentDate);
+  const [calendarNotes, setCalendarNotes] = useState("");
+  const [calendarComments, setCalendarComments] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(true); // Default to true for now
+  const [currentUser, setCurrentUser] = useState({
+    id: "user1",
+    name: "Guest User",
+  });
 
   // Generate days for the current month view
   const monthStart = startOfMonth(viewDate);
@@ -82,6 +90,101 @@ const MonthView: React.FC<MonthViewProps> = ({
 
   // Calculate days from previous month to fill the first week
   const startDay = getDay(monthStart);
+
+  // Fetch user profile and check if admin
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          setCurrentUser({
+            id: user.id,
+            name: profile.full_name || user.email,
+            avatarUrl: profile.avatar_url,
+          });
+
+          setIsAdmin(profile.role === "admin");
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Fetch notes and comments for the current month
+  useEffect(() => {
+    const fetchNotesAndComments = async () => {
+      const formattedDate = format(viewDate, "yyyy-MM");
+
+      // Fetch notes
+      const { data: notesData } = await supabase
+        .from("calendar_notes")
+        .select("*")
+        .like("date", `${formattedDate}%`)
+        .order("date", { ascending: true });
+
+      if (notesData && notesData.length > 0) {
+        // Just use the first note for this month
+        setCalendarNotes(notesData[0].notes);
+      } else {
+        setCalendarNotes(
+          "<p>This is the schedule for all providers this month. Please check with the clinic before making any changes to your personal schedule.</p><p>Reminder: All vacation requests must be submitted at least 2 weeks in advance.</p>",
+        );
+      }
+
+      // Fetch comments
+      const { data: commentsData } = await supabase
+        .from("calendar_comments")
+        .select("*")
+        .like("date", `${formattedDate}%`)
+        .order("created_at", { ascending: true });
+
+      if (commentsData && commentsData.length > 0) {
+        const formattedComments = commentsData.map((comment) => ({
+          id: comment.id,
+          author: comment.author,
+          authorId: comment.author_id,
+          avatarUrl: comment.avatar_url,
+          content: comment.content,
+          createdAt: new Date(comment.created_at),
+        }));
+        setCalendarComments(formattedComments);
+      } else {
+        // Default comments if none exist
+        setCalendarComments([
+          {
+            id: "1",
+            author: "Dr. Smith",
+            authorId: "1",
+            content: "I'll be attending the medical conference on the 15th.",
+            createdAt: new Date(viewDate.getFullYear(), viewDate.getMonth(), 5),
+          },
+          {
+            id: "2",
+            author: "Admin",
+            authorId: "admin1",
+            content:
+              "Please note that the clinic will be closed for maintenance on the last weekend of the month.",
+            createdAt: new Date(
+              viewDate.getFullYear(),
+              viewDate.getMonth(),
+              10,
+            ),
+          },
+        ]);
+      }
+    };
+
+    fetchNotesAndComments();
+  }, [viewDate]);
 
   // Navigate to previous/next month
   const prevMonth = () => {
@@ -184,6 +287,17 @@ const MonthView: React.FC<MonthViewProps> = ({
         isActive: true,
       }
     );
+  };
+
+  // Handle saving notes
+  const handleSaveNotes = async (notes: string) => {
+    setCalendarNotes(notes);
+    // Actual saving is handled in the CalendarNotes component
+  };
+
+  // Handle adding a comment
+  const handleAddComment = async (comment: string) => {
+    // Actual saving is handled in the CalendarNotes component
   };
 
   // Render shift pill
@@ -372,33 +486,12 @@ const MonthView: React.FC<MonthViewProps> = ({
       <div className="mt-4">
         <CalendarNotes
           date={viewDate}
-          notes="<p>This is the schedule for all providers this month. Please check with the clinic before making any changes to your personal schedule.</p><p>Reminder: All vacation requests must be submitted at least 2 weeks in advance.</p>"
-          comments={[
-            {
-              id: "1",
-              author: "Dr. Smith",
-              authorId: "1",
-              content: "I'll be attending the medical conference on the 15th.",
-              createdAt: new Date(
-                viewDate.getFullYear(),
-                viewDate.getMonth(),
-                5,
-              ),
-            },
-            {
-              id: "2",
-              author: "Admin",
-              authorId: "admin1",
-              content:
-                "Please note that the clinic will be closed for maintenance on the last weekend of the month.",
-              createdAt: new Date(
-                viewDate.getFullYear(),
-                viewDate.getMonth(),
-                10,
-              ),
-            },
-          ]}
-          isAdmin={true}
+          notes={calendarNotes}
+          comments={calendarComments}
+          isAdmin={isAdmin}
+          currentUser={currentUser}
+          onSaveNotes={handleSaveNotes}
+          onAddComment={handleAddComment}
         />
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Edit, Save } from "lucide-react";
+import RichTextEditor from "./RichTextEditor";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CalendarNotesDialogProps {
   date: Date;
@@ -31,10 +33,105 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedNotes, setEditedNotes] = useState(notes);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSaveNotes = () => {
-    onSaveNotes(editedNotes);
-    setIsEditing(false);
+  // Format date as YYYY-MM-DD for database
+  const formattedDate = format(date, "yyyy-MM-dd");
+
+  useEffect(() => {
+    setEditedNotes(notes);
+  }, [notes]);
+
+  // Fetch notes from Supabase when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotes();
+    }
+  }, [isOpen, formattedDate]);
+
+  const fetchNotes = async () => {
+    try {
+      setIsLoading(true);
+
+      const { data, error } = await supabase
+        .from("calendar_notes")
+        .select("notes")
+        .eq("date", formattedDate)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 is "not found"
+        console.error("Error fetching notes:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load notes",
+          variant: "destructive",
+        });
+      }
+
+      if (data) {
+        setEditedNotes(data.notes);
+      }
+    } catch (error) {
+      console.error("Error in fetchNotes:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    try {
+      setIsLoading(true);
+
+      // Check if notes already exist for this date
+      const { data: existingNote, error: checkError } = await supabase
+        .from("calendar_notes")
+        .select("id")
+        .eq("date", formattedDate)
+        .single();
+
+      let result;
+
+      if (existingNote) {
+        // Update existing note
+        result = await supabase
+          .from("calendar_notes")
+          .update({
+            notes: editedNotes,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingNote.id);
+      } else {
+        // Insert new note
+        result = await supabase.from("calendar_notes").insert({
+          date: formattedDate,
+          notes: editedNotes,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      onSaveNotes(editedNotes);
+      setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Notes saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save notes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -55,6 +152,7 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsEditing(!isEditing)}
+                disabled={isLoading}
               >
                 {isEditing ? (
                   <Save className="h-4 w-4 mr-2" />
@@ -72,18 +170,18 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
 
         <div className="py-4">
           {isEditing ? (
-            <Textarea
+            <RichTextEditor
               value={editedNotes}
-              onChange={(e) => setEditedNotes(e.target.value)}
+              onChange={setEditedNotes}
               placeholder="Add notes for the calendar..."
-              className="min-h-[200px]"
+              minHeight="200px"
             />
           ) : (
             <div className="bg-gray-50 p-4 rounded-md min-h-[200px]">
-              {notes ? (
+              {editedNotes ? (
                 <div
                   className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: notes }}
+                  dangerouslySetInnerHTML={{ __html: editedNotes }}
                 />
               ) : (
                 <p className="text-gray-500 italic">
@@ -103,10 +201,13 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
                   setIsEditing(false);
                   setEditedNotes(notes);
                 }}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button onClick={handleSaveNotes}>Save Notes</Button>
+              <Button onClick={handleSaveNotes} disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Notes"}
+              </Button>
             </>
           ) : (
             <Button onClick={() => setIsOpen(false)}>Close</Button>

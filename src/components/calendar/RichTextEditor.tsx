@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -31,9 +31,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [htmlContent, setHtmlContent] = useState(value);
   const [isHtmlMode, setIsHtmlMode] = useState(false);
 
+  // Update internal state when value prop changes
+  useEffect(() => {
+    setHtmlContent(value);
+  }, [value]);
+
   const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setHtmlContent(e.target.value);
-    onChange(e.target.value);
+    const newValue = e.target.value;
+    setHtmlContent(newValue);
+    onChange(newValue);
   };
 
   const applyFormatting = (tag: string, attributes?: string) => {
@@ -61,14 +67,25 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
     // Update the HTML content
     const tempDiv = document.createElement("div");
-    tempDiv.appendChild(range.cloneContents());
+    tempDiv.appendChild(document.createTextNode(""));
+    const fragment = range.cloneContents();
+    tempDiv.appendChild(fragment);
     const newHtml = tempDiv.innerHTML;
 
-    setHtmlContent((prevHtml) => {
-      const updatedHtml = prevHtml.replace(selectedText, newHtml);
-      onChange(updatedHtml);
-      return updatedHtml;
-    });
+    // Get the parent contentEditable element
+    let contentEditableElement = range.startContainer.parentElement;
+    while (
+      contentEditableElement &&
+      !contentEditableElement.hasAttribute("contenteditable")
+    ) {
+      contentEditableElement = contentEditableElement.parentElement;
+    }
+
+    if (contentEditableElement) {
+      const fullContent = contentEditableElement.innerHTML;
+      onChange(fullContent);
+      setHtmlContent(fullContent);
+    }
   };
 
   return (
@@ -202,7 +219,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div
               contentEditable
               className="min-h-[150px] p-2 focus:outline-none prose max-w-none"
-              style={{ minHeight }}
+              style={{ minHeight, direction: "ltr" }} // Fix for RTL issue
               dangerouslySetInnerHTML={{ __html: htmlContent }}
               onInput={(e) => {
                 const newContent = e.currentTarget.innerHTML;
