@@ -44,5 +44,17 @@ export default defineConfig({
         assetFileNames: "assets/[name].[hash].[ext]",
       },
     },
+    // Ensure proper content types are set
+    assetsInlineLimit: 0,
+  },
+  // Add proper MIME type mappings
+  server: {
+    // @ts-ignore
+    allowedHosts: true,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "max-age=86400, must-revalidate",
+    },
   },
 });
