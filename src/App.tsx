@@ -8,31 +8,26 @@ import Notes from "./pages/Notes";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProviderManagement from "./components/providers/ProviderManagement";
 import ClinicTypeManagement from "./components/clinics/ClinicTypeManagement";
+import routes from "tempo-routes";
 
 function App() {
-  // Get the base path from the environment or default to empty string
-  const basePath = import.meta.env.BASE_URL || "/";
-
   return (
     <AuthProvider>
       <Suspense fallback={<p>Loading...</p>}>
+        {import.meta.env.VITE_TEMPO && useRoutes(routes)}
         <Routes>
-          <Route path={`${basePath}`} element={<Calendar />} />
-          <Route path={`${basePath}calendar`} element={<Calendar />} />
-          <Route path={`${basePath}home`} element={<Home />} />
-          <Route path={`${basePath}login`} element={<Login />} />
-          <Route
-            path={`${basePath}providers`}
-            element={<ProviderManagement />}
-          />
-          <Route
-            path={`${basePath}clinics`}
-            element={<ClinicTypeManagement />}
-          />
-          <Route path={`${basePath}notes`} element={<Notes />} />
-          <Route path={`${basePath}settings`} element={<Settings />} />
-          <Route path={`${basePath}tempobook/*`} element={null} />
-          <Route path="*" element={<Navigate to={basePath} replace />} />
+          <Route path="/" element={<Calendar />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/providers" element={<ProviderManagement />} />
+          <Route path="/clinics" element={<ClinicTypeManagement />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/settings" element={<Settings />} />
+          {import.meta.env.VITE_TEMPO && (
+            <Route path="/tempobook/*" element={null} />
+          )}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </AuthProvider>
