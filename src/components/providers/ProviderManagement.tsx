@@ -3,6 +3,9 @@ import { PlusCircle, Edit, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Table,
   TableBody,
@@ -131,6 +134,8 @@ const ProviderManagement = ({
     color: "#4CAF50",
     status: "active",
   });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { session, signOut } = useAuth();
 
   // Filter providers based on search term
   const filteredProviders = providers.filter((provider) =>
@@ -184,6 +189,16 @@ const ProviderManagement = ({
     setProviders(updatedProviders);
   };
 
+  // Toggle sidebar collapsed state
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut();
+  };
+
   const colorOptions = [
     { value: "#4CAF50", label: "Green" },
     { value: "#2196F3", label: "Blue" },
@@ -196,346 +211,375 @@ const ProviderManagement = ({
   ];
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm w-full h-full">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Provider Management</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" />
-              Add Provider
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Provider</DialogTitle>
-              <DialogDescription>
-                Enter the details for the new healthcare provider.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="name" className="text-right font-medium">
-                  Name
-                </label>
+    <div className="flex flex-col h-screen bg-background">
+      <Header
+        userName={session.user ? "Admin User" : undefined}
+        userRole={session.user ? "admin" : "public"}
+        onToggleSidebar={toggleSidebar}
+        onLogout={handleLogout}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+
+        <main className="flex-1 overflow-auto bg-gray-50">
+          <div className="bg-white p-6 rounded-lg shadow-sm w-full h-full">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold">Provider Management</h1>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <PlusCircle className="h-4 w-4" />
+                    Add Provider
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Provider</DialogTitle>
+                    <DialogDescription>
+                      Enter the details for the new healthcare provider.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="name" className="text-right font-medium">
+                        Name
+                      </label>
+                      <Input
+                        id="name"
+                        value={newProvider.name}
+                        onChange={(e) =>
+                          setNewProvider({
+                            ...newProvider,
+                            name: e.target.value,
+                          })
+                        }
+                        className="col-span-3"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="color" className="text-right font-medium">
+                        Color
+                      </label>
+                      <Select
+                        value={newProvider.color}
+                        onValueChange={(value) =>
+                          setNewProvider({ ...newProvider, color: value })
+                        }
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select a color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {colorOptions.map((color) => (
+                            <SelectItem key={color.value} value={color.value}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-4 h-4 rounded-full"
+                                  style={{ backgroundColor: color.value }}
+                                />
+                                <span>{color.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label
+                        htmlFor="status"
+                        className="text-right font-medium"
+                      >
+                        Active
+                      </label>
+                      <div className="col-span-3">
+                        <Switch
+                          id="status"
+                          checked={newProvider.status === "active"}
+                          onCheckedChange={(checked) =>
+                            setNewProvider({
+                              ...newProvider,
+                              status: checked ? "active" : "inactive",
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsAddDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddProvider}>Save</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="name"
-                  value={newProvider.name}
-                  onChange={(e) =>
-                    setNewProvider({ ...newProvider, name: e.target.value })
-                  }
-                  className="col-span-3"
+                  placeholder="Search providers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
                 />
               </div>
-
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="color" className="text-right font-medium">
-                  Color
-                </label>
-                <Select
-                  value={newProvider.color}
-                  onValueChange={(value) =>
-                    setNewProvider({ ...newProvider, color: value })
-                  }
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {colorOptions.map((color) => (
-                      <SelectItem key={color.value} value={color.value}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: color.value }}
-                          />
-                          <span>{color.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="status" className="text-right font-medium">
-                  Active
-                </label>
-                <div className="col-span-3">
-                  <Switch
-                    id="status"
-                    checked={newProvider.status === "active"}
-                    onCheckedChange={(checked) =>
-                      setNewProvider({
-                        ...newProvider,
-                        status: checked ? "active" : "inactive",
-                      })
-                    }
-                  />
-                </div>
-              </div>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsAddDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleAddProvider}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
 
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search providers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
+                    <TableHead>Color</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProviders.length > 0 ? (
+                    filteredProviders.map((provider) => (
+                      <TableRow key={provider.id}>
+                        <TableCell className="font-medium">
+                          {provider.name}
+                        </TableCell>
 
-              <TableHead>Color</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProviders.length > 0 ? (
-              filteredProviders.map((provider) => (
-                <TableRow key={provider.id}>
-                  <TableCell className="font-medium">{provider.name}</TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: provider.color }}
-                      />
-                      {
-                        colorOptions.find((c) => c.value === provider.color)
-                          ?.label
-                      }
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={provider.status === "active"}
-                        onCheckedChange={(checked) =>
-                          handleStatusChange(provider.id, checked)
-                        }
-                      />
-                      <span
-                        className={`text-xs ${provider.status === "active" ? "text-green-600" : "text-red-600"}`}
-                      >
-                        {provider.status === "active" ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Dialog
-                        open={
-                          isEditDialogOpen &&
-                          currentProvider?.id === provider.id
-                        }
-                        onOpenChange={(open) => {
-                          setIsEditDialogOpen(open);
-                          if (!open) setCurrentProvider(null);
-                        }}
-                      >
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setCurrentProvider(provider)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit Provider</DialogTitle>
-                            <DialogDescription>
-                              Update the provider's information.
-                            </DialogDescription>
-                          </DialogHeader>
-                          {currentProvider && (
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <label
-                                  htmlFor="edit-name"
-                                  className="text-right font-medium"
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: provider.color }}
+                            />
+                            {
+                              colorOptions.find(
+                                (c) => c.value === provider.color,
+                              )?.label
+                            }
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={provider.status === "active"}
+                              onCheckedChange={(checked) =>
+                                handleStatusChange(provider.id, checked)
+                              }
+                            />
+                            <span
+                              className={`text-xs ${provider.status === "active" ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {provider.status === "active"
+                                ? "Active"
+                                : "Inactive"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Dialog
+                              open={
+                                isEditDialogOpen &&
+                                currentProvider?.id === provider.id
+                              }
+                              onOpenChange={(open) => {
+                                setIsEditDialogOpen(open);
+                                if (!open) setCurrentProvider(null);
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setCurrentProvider(provider)}
                                 >
-                                  Name
-                                </label>
-                                <Input
-                                  id="edit-name"
-                                  value={currentProvider.name}
-                                  onChange={(e) =>
-                                    setCurrentProvider({
-                                      ...currentProvider,
-                                      name: e.target.value,
-                                    })
-                                  }
-                                  className="col-span-3"
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <label
-                                  htmlFor="edit-color"
-                                  className="text-right font-medium"
-                                >
-                                  Color
-                                </label>
-                                <Select
-                                  value={currentProvider.color}
-                                  onValueChange={(value) =>
-                                    setCurrentProvider({
-                                      ...currentProvider,
-                                      color: value,
-                                    })
-                                  }
-                                >
-                                  <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select a color" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {colorOptions.map((color) => (
-                                      <SelectItem
-                                        key={color.value}
-                                        value={color.value}
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit Provider</DialogTitle>
+                                  <DialogDescription>
+                                    Update the provider's information.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                {currentProvider && (
+                                  <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                      <label
+                                        htmlFor="edit-name"
+                                        className="text-right font-medium"
                                       >
-                                        <div className="flex items-center gap-2">
-                                          <div
-                                            className="w-4 h-4 rounded-full"
-                                            style={{
-                                              backgroundColor: color.value,
-                                            }}
-                                          />
-                                          <span>{color.label}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <label
-                                  htmlFor="edit-status"
-                                  className="text-right font-medium"
-                                >
-                                  Active
-                                </label>
-                                <div className="col-span-3">
-                                  <Switch
-                                    id="edit-status"
-                                    checked={
-                                      currentProvider.status === "active"
-                                    }
-                                    onCheckedChange={(checked) =>
-                                      setCurrentProvider({
-                                        ...currentProvider,
-                                        status: checked ? "active" : "inactive",
-                                      })
-                                    }
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          <DialogFooter>
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsEditDialogOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button onClick={handleEditProvider}>
-                              Save Changes
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                                        Name
+                                      </label>
+                                      <Input
+                                        id="edit-name"
+                                        value={currentProvider.name}
+                                        onChange={(e) =>
+                                          setCurrentProvider({
+                                            ...currentProvider,
+                                            name: e.target.value,
+                                          })
+                                        }
+                                        className="col-span-3"
+                                      />
+                                    </div>
 
-                      <Dialog
-                        open={
-                          isDeleteDialogOpen &&
-                          currentProvider?.id === provider.id
-                        }
-                        onOpenChange={(open) => {
-                          setIsDeleteDialogOpen(open);
-                          if (!open) setCurrentProvider(null);
-                        }}
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                      <label
+                                        htmlFor="edit-color"
+                                        className="text-right font-medium"
+                                      >
+                                        Color
+                                      </label>
+                                      <Select
+                                        value={currentProvider.color}
+                                        onValueChange={(value) =>
+                                          setCurrentProvider({
+                                            ...currentProvider,
+                                            color: value,
+                                          })
+                                        }
+                                      >
+                                        <SelectTrigger className="col-span-3">
+                                          <SelectValue placeholder="Select a color" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {colorOptions.map((color) => (
+                                            <SelectItem
+                                              key={color.value}
+                                              value={color.value}
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                <div
+                                                  className="w-4 h-4 rounded-full"
+                                                  style={{
+                                                    backgroundColor:
+                                                      color.value,
+                                                  }}
+                                                />
+                                                <span>{color.label}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                      <label
+                                        htmlFor="edit-status"
+                                        className="text-right font-medium"
+                                      >
+                                        Active
+                                      </label>
+                                      <div className="col-span-3">
+                                        <Switch
+                                          id="edit-status"
+                                          checked={
+                                            currentProvider.status === "active"
+                                          }
+                                          onCheckedChange={(checked) =>
+                                            setCurrentProvider({
+                                              ...currentProvider,
+                                              status: checked
+                                                ? "active"
+                                                : "inactive",
+                                            })
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                <DialogFooter>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setIsEditDialogOpen(false)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button onClick={handleEditProvider}>
+                                    Save Changes
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+
+                            <Dialog
+                              open={
+                                isDeleteDialogOpen &&
+                                currentProvider?.id === provider.id
+                              }
+                              onOpenChange={(open) => {
+                                setIsDeleteDialogOpen(open);
+                                if (!open) setCurrentProvider(null);
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setCurrentProvider(provider)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Delete Provider</DialogTitle>
+                                  <DialogDescription>
+                                    Are you sure you want to delete this
+                                    provider? This action cannot be undone.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                {currentProvider && (
+                                  <div className="py-4">
+                                    <p className="font-medium">
+                                      {currentProvider.name}
+                                    </p>
+                                  </div>
+                                )}
+                                <DialogFooter>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setIsDeleteDialogOpen(false)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={handleDeleteProvider}
+                                  >
+                                    Delete
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-6 text-muted-foreground"
                       >
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setCurrentProvider(provider)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Delete Provider</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete this provider?
-                              This action cannot be undone.
-                            </DialogDescription>
-                          </DialogHeader>
-                          {currentProvider && (
-                            <div className="py-4">
-                              <p className="font-medium">
-                                {currentProvider.name}
-                              </p>
-                            </div>
-                          )}
-                          <DialogFooter>
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsDeleteDialogOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={handleDeleteProvider}
-                            >
-                              Delete
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center py-6 text-muted-foreground"
-                >
-                  No providers found. Add a new provider to get started.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                        No providers found. Add a new provider to get started.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

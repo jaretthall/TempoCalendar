@@ -9,6 +9,7 @@ import {
   Settings,
   ChevronDown,
   LogIn,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +57,12 @@ const Header = ({
         </div>
 
         <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/" title="Back to Dashboard">
+              <LayoutDashboard className="h-5 w-5" />
+            </Link>
+          </Button>
+
           {userRole !== "public" ? (
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
