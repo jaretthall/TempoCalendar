@@ -47,6 +47,25 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchNotes();
+
+      // Set up realtime subscription for notes
+      const notesSubscription = supabase
+        .channel(`calendar_notes_changes_${formattedDate}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "calendar_notes",
+            filter: `date=eq.${formattedDate}`,
+          },
+          fetchNotes,
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(notesSubscription);
+      };
     }
   }, [isOpen, formattedDate]);
 
@@ -71,10 +90,18 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
       }
 
       if (data) {
-        setEditedNotes(data.notes);
+        setEditedNotes(data.notes || "");
+      } else {
+        // Reset to empty or default notes if no data found
+        setEditedNotes("");
       }
     } catch (error) {
       console.error("Error in fetchNotes:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

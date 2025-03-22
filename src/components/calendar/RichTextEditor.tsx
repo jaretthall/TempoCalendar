@@ -219,7 +219,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <div
               contentEditable
               className="min-h-[150px] p-2 focus:outline-none prose max-w-none"
-              style={{ minHeight, direction: "ltr" }} // Fix for RTL issue
+              style={{ minHeight }}
               dangerouslySetInnerHTML={{ __html: htmlContent }}
               onInput={(e) => {
                 const newContent = e.currentTarget.innerHTML;

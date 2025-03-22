@@ -1,7 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock, Repeat, X } from "lucide-react";
+import { format, addDays, addWeeks } from "date-fns";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  Repeat,
+  X,
+  AlertCircle,
+} from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 import { cn } from "@/lib/utils";
 import {
@@ -38,78 +46,298 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/lib/supabase";
+
+// Define the form schema with zod
+const shiftFormSchema = z.object({
+  providerId: z.string().min(1, "Provider is required"),
+  clinicTypeId: z.string().min(1, "Clinic type is required"),
+  startDate: z.date({ required_error: "Start date is required" }),
+  endDate: z.date({ required_error: "End date is required" }),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+  isVacation: z.boolean().default(false),
+  isRecurring: z.boolean().default(false),
+  recurrencePattern: z.enum(["daily", "weekly", "biweekly"]).optional(),
+  recurrenceEndDate: z.date().optional().nullable(),
+  notes: z.string().optional(),
+  location: z.string().optional(),
+});
+
+type ShiftFormValues = z.infer<typeof shiftFormSchema>;
 
 interface ShiftDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSave?: (data: ShiftFormValues) => void;
-  shift?: ShiftFormValues;
+  onSave?: (data: any) => void;
+  onDelete?: (shiftId: string) => void;
+  onClose?: () => void;
+  shift?: any;
   isEditing?: boolean;
+  initialDate?: Date | null;
+  providers?: any[];
+  clinicTypes?: any[];
 }
 
-interface ShiftFormValues {
-  providerId: string;
-  clinicTypeId: string;
-  startDate: Date;
-  endDate: Date;
-  isVacation: boolean;
-  isRecurring: boolean;
-  recurrencePattern?: "daily" | "weekly" | "biweekly";
-  recurrenceEndDate?: Date;
-  notes?: string;
-  location?: string;
-}
-
-const mockProviders = [
-  { id: "1", name: "Dr. Jane Smith", color: "#4CAF50" },
-  { id: "2", name: "Dr. John Doe", color: "#2196F3" },
-  { id: "3", name: "Dr. Emily Johnson", color: "#9C27B0" },
-];
-
-const mockClinicTypes = [
-  { id: "1", name: "Primary Care", color: "#FF9800" },
-  { id: "2", name: "Specialty Clinic", color: "#E91E63" },
-  { id: "3", name: "Urgent Care", color: "#F44336" },
-];
-
-export default function ShiftDialog({
+const ShiftDialog = ({
   open = true,
   onOpenChange,
   onSave,
+  onDelete,
+  onClose,
   shift,
   isEditing = false,
-}: ShiftDialogProps) {
+  initialDate = null,
+  providers: propProviders = [],
+  clinicTypes: propClinicTypes = [],
+}: ShiftDialogProps) => {
   const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
+  const [providers, setProviders] = useState<any[]>([]);
+  const [clinicTypes, setClinicTypes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const defaultValues: ShiftFormValues = {
+  // Format time from Date object or create default time
+  const formatTimeFromDate = (date?: Date): string => {
+    if (!date) return "09:00";
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  };
+
+  // Default values for the form
+  const defaultValues: Partial<ShiftFormValues> = {
     providerId: shift?.providerId || "",
     clinicTypeId: shift?.clinicTypeId || "",
-    startDate: shift?.startDate || new Date(),
-    endDate: shift?.endDate || new Date(),
+    startDate: shift?.startDate || initialDate || new Date(),
+    endDate: shift?.endDate || initialDate || new Date(),
+    startTime: formatTimeFromDate(shift?.startDate) || "09:00",
+    endTime: formatTimeFromDate(shift?.endDate) || "17:00",
     isVacation: shift?.isVacation || false,
     isRecurring: shift?.isRecurring || false,
     recurrencePattern: shift?.recurrencePattern || "weekly",
-    recurrenceEndDate: shift?.recurrenceEndDate,
+    recurrenceEndDate: shift?.recurrenceEndDate || null,
     notes: shift?.notes || "",
     location: shift?.location || "",
   };
 
+  // Initialize form with validation
   const form = useForm<ShiftFormValues>({
+    resolver: zodResolver(shiftFormSchema),
     defaultValues,
   });
 
+  // Watch for changes to isRecurring field
   const watchIsRecurring = form.watch("isRecurring");
 
-  React.useEffect(() => {
+  // Update recurrence options visibility when isRecurring changes
+  useEffect(() => {
     setShowRecurrenceOptions(watchIsRecurring);
   }, [watchIsRecurring]);
 
-  const onSubmit = (data: ShiftFormValues) => {
-    if (onSave) {
-      onSave(data);
+  // Use providers and clinic types from props or fetch them if not provided
+  useEffect(() => {
+    if (propProviders.length > 0) {
+      setProviders(propProviders);
+    } else {
+      const fetchProviders = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("providers")
+            .select("*")
+            .order("name");
+
+          if (error) throw error;
+          setProviders(data || []);
+        } catch (error) {
+          console.error("Error fetching providers:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load providers",
+            variant: "destructive",
+          });
+        }
+      };
+      fetchProviders();
     }
-    if (onOpenChange) {
-      onOpenChange(false);
+
+    if (propClinicTypes.length > 0) {
+      setClinicTypes(propClinicTypes);
+    } else {
+      const fetchClinicTypes = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("clinic_types")
+            .select("*")
+            .order("name");
+
+          if (error) throw error;
+          setClinicTypes(data || []);
+        } catch (error) {
+          console.error("Error fetching clinic types:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load clinic types",
+            variant: "destructive",
+          });
+        }
+      };
+      fetchClinicTypes();
+    }
+  }, [toast, propProviders, propClinicTypes]);
+
+  // Create a combined date and time
+  const combineDateAndTime = (date: Date, timeString: string): Date => {
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const newDate = new Date(date);
+    newDate.setHours(hours, minutes, 0, 0);
+    return newDate;
+  };
+
+  // Generate recurring shifts based on pattern
+  const generateRecurringShifts = async (
+    baseShift: any,
+    pattern: string,
+    endDate?: Date,
+  ) => {
+    try {
+      const shifts = [];
+      let currentDate = new Date(baseShift.start_date);
+      const endRecurrence = endDate || addDays(currentDate, 90); // Default to 90 days if no end date
+
+      while (currentDate <= endRecurrence) {
+        // Skip the first occurrence as it's already created
+        if (shifts.length > 0) {
+          const shiftData = {
+            provider_id: baseShift.provider_id,
+            clinic_type_id: baseShift.clinic_type_id,
+            start_date: currentDate.toISOString(),
+            end_date: new Date(
+              currentDate.getTime() +
+                (new Date(baseShift.end_date).getTime() -
+                  new Date(baseShift.start_date).getTime()),
+            ).toISOString(),
+            is_vacation: baseShift.is_vacation,
+            notes: baseShift.notes,
+            location: baseShift.location,
+          };
+          shifts.push(shiftData);
+        }
+
+        // Advance to next occurrence based on pattern
+        if (pattern === "daily") {
+          currentDate = addDays(currentDate, 1);
+        } else if (pattern === "weekly") {
+          currentDate = addDays(currentDate, 7);
+        } else if (pattern === "biweekly") {
+          currentDate = addDays(currentDate, 14);
+        }
+      }
+
+      // Insert all recurring shifts in a batch
+      if (shifts.length > 0) {
+        const { error } = await supabase.from("shifts").insert(shifts);
+        if (error) throw error;
+      }
+
+      return shifts.length;
+    } catch (error) {
+      console.error("Error generating recurring shifts:", error);
+      throw error;
+    }
+  };
+
+  // Form submission handler
+  const onSubmit = async (data: ShiftFormValues) => {
+    try {
+      setIsLoading(true);
+      setFormError(null);
+
+      // Combine date and time
+      const startDateTime = combineDateAndTime(data.startDate, data.startTime);
+      const endDateTime = combineDateAndTime(data.endDate, data.endTime);
+
+      // Validate end date is not before start date
+      if (endDateTime < startDateTime) {
+        setFormError("End date/time cannot be before start date/time");
+        return;
+      }
+
+      // Prepare shift data for Supabase
+      const shiftData = {
+        provider_id: data.providerId,
+        clinic_type_id: data.clinicTypeId,
+        start_date: startDateTime.toISOString(),
+        end_date: endDateTime.toISOString(),
+        is_vacation: data.isVacation,
+        notes: data.notes || null,
+        location: data.location || null,
+      };
+
+      let result;
+      let shiftId;
+
+      // Update or insert shift
+      if (isEditing && shift?.id) {
+        result = await supabase
+          .from("shifts")
+          .update(shiftData)
+          .eq("id", shift.id);
+        shiftId = shift.id;
+      } else {
+        result = await supabase.from("shifts").insert(shiftData).select();
+        shiftId = result.data?.[0]?.id;
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      // Handle recurring shifts
+      let recurringCount = 0;
+      if (data.isRecurring && !isEditing && data.recurrencePattern) {
+        recurringCount = await generateRecurringShifts(
+          { ...shiftData, id: shiftId },
+          data.recurrencePattern,
+          data.recurrenceEndDate || undefined,
+        );
+      }
+
+      // Call onSave callback with the form data
+      if (onSave) {
+        onSave({
+          ...data,
+          id: shiftId,
+          startDate: startDateTime,
+          endDate: endDateTime,
+        });
+      }
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: isEditing
+          ? "Shift updated successfully"
+          : `Shift created successfully${recurringCount > 0 ? ` with ${recurringCount} recurring instances` : ""}`,
+      });
+
+      // Close dialog
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      setFormError(
+        error instanceof Error ? error.message : "Failed to save shift",
+      );
+      toast({
+        title: "Error",
+        description: "Failed to save shift",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -121,6 +349,13 @@ export default function ShiftDialog({
             {isEditing ? "Edit Shift" : "Create New Shift"}
           </DialogTitle>
         </DialogHeader>
+
+        {formError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -142,17 +377,23 @@ export default function ShiftDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockProviders.map((provider) => (
-                          <SelectItem key={provider.id} value={provider.id}>
-                            <div className="flex items-center">
-                              <div
-                                className="w-3 h-3 rounded-full mr-2"
-                                style={{ backgroundColor: provider.color }}
-                              />
-                              {provider.name}
-                            </div>
+                        {providers.length > 0 ? (
+                          providers.map((provider) => (
+                            <SelectItem key={provider.id} value={provider.id}>
+                              <div className="flex items-center">
+                                <div
+                                  className="w-3 h-3 rounded-full mr-2"
+                                  style={{ backgroundColor: provider.color }}
+                                />
+                                {provider.name}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="loading" disabled>
+                            Loading providers...
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -177,17 +418,23 @@ export default function ShiftDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockClinicTypes.map((clinic) => (
-                          <SelectItem key={clinic.id} value={clinic.id}>
-                            <div className="flex items-center">
-                              <div
-                                className="w-3 h-3 rounded-full mr-2"
-                                style={{ backgroundColor: clinic.color }}
-                              />
-                              {clinic.name}
-                            </div>
+                        {clinicTypes.length > 0 ? (
+                          clinicTypes.map((clinic) => (
+                            <SelectItem key={clinic.id} value={clinic.id}>
+                              <div className="flex items-center">
+                                <div
+                                  className="w-3 h-3 rounded-full mr-2"
+                                  style={{ backgroundColor: clinic.color }}
+                                />
+                                {clinic.name}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="loading" disabled>
+                            Loading clinic types...
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -279,6 +526,38 @@ export default function ShiftDialog({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Start Time */}
+              <FormField
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* End Time */}
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Time</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Location */}
               <FormField
                 control={form.control}
@@ -333,6 +612,7 @@ export default function ShiftDialog({
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      disabled={isEditing} // Disable for editing existing shifts
                     />
                   </FormControl>
                 </FormItem>
@@ -406,7 +686,7 @@ export default function ShiftDialog({
                               size="sm"
                               className="mb-2 text-xs"
                               onClick={() => {
-                                field.onChange(undefined);
+                                field.onChange(null);
                               }}
                             >
                               <X className="mr-1 h-3 w-3" />
@@ -415,14 +695,14 @@ export default function ShiftDialog({
                           </div>
                           <Calendar
                             mode="single"
-                            selected={field.value}
+                            selected={field.value || undefined}
                             onSelect={field.onChange}
                             initialFocus
                           />
                         </PopoverContent>
                       </Popover>
                       <FormDescription>
-                        Leave empty for indefinite recurrence
+                        Leave empty for indefinite recurrence (max 90 days)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -451,19 +731,40 @@ export default function ShiftDialog({
               )}
             />
 
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
+            <DialogFooter className="flex justify-between">
+              <div>
+                {isEditing && onDelete && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      if (shift?.id && onDelete) {
+                        onDelete(shift.id);
+                      }
+                    }}
+                    disabled={isLoading}
+                  >
+                    Delete Shift
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Saving..." : isEditing ? "Update" : "Create"}{" "}
+                  Shift
                 </Button>
-              </DialogClose>
-              <Button type="submit">
-                {isEditing ? "Update" : "Create"} Shift
-              </Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default ShiftDialog;

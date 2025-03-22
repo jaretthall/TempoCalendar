@@ -44,17 +44,19 @@ const ClinicTypeManagement: React.FC<ClinicTypeManagementProps> = ({
   onUpdateClinicType = () => {},
   onDeleteClinicType = () => {},
 }) => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(true);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(true);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedClinicType, setSelectedClinicType] =
     useState<ClinicType | null>(null);
 
   const [newClinicType, setNewClinicType] = useState<Omit<ClinicType, "id">>({
     name: "",
-    color: "#000000",
+    color: "#4CAF50",
     isActive: true,
   });
+
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleAddClinicType = () => {
     onAddClinicType(newClinicType);
@@ -177,6 +179,15 @@ const ClinicTypeManagement: React.FC<ClinicTypeManagementProps> = ({
         </Dialog>
       </div>
 
+      <div className="mb-4">
+        <Input
+          placeholder="Search clinic types..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+      </div>
+
       <div className="border rounded-md">
         <Table>
           <TableHeader>
@@ -188,218 +199,229 @@ const ClinicTypeManagement: React.FC<ClinicTypeManagementProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clinicTypes.map((clinicType) => (
-              <TableRow key={clinicType.id}>
-                <TableCell className="font-medium">{clinicType.name}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded-full"
-                      style={{ backgroundColor: clinicType.color }}
-                    />
-                    <span>{clinicType.color}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={clinicType.isActive}
-                      onCheckedChange={(checked) =>
-                        handleStatusChange(clinicType.id, checked)
-                      }
-                    />
-                    <span>{clinicType.isActive ? "Active" : "Inactive"}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Dialog
-                      open={
-                        isEditDialogOpen &&
-                        selectedClinicType?.id === clinicType.id
-                      }
-                      onOpenChange={(open) => {
-                        setIsEditDialogOpen(open);
-                        if (!open) setSelectedClinicType(null);
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedClinicType(clinicType)}
-                        >
-                          <Edit size={16} />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Clinic Type</DialogTitle>
-                          <DialogDescription>
-                            Update the clinic type details.
-                          </DialogDescription>
-                        </DialogHeader>
-                        {selectedClinicType && (
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <label htmlFor="edit-name" className="text-right">
-                                Name
-                              </label>
-                              <Input
-                                id="edit-name"
-                                value={selectedClinicType.name}
-                                onChange={(e) =>
-                                  setSelectedClinicType({
-                                    ...selectedClinicType,
-                                    name: e.target.value,
-                                  })
-                                }
-                                className="col-span-3"
-                              />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <label
-                                htmlFor="edit-color"
-                                className="text-right"
-                              >
-                                Color
-                              </label>
-                              <div className="col-span-3 flex items-center gap-2">
+            {clinicTypes
+              .filter((clinicType) =>
+                clinicType.name
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase()),
+              )
+              .map((clinicType) => (
+                <TableRow key={clinicType.id}>
+                  <TableCell className="font-medium">
+                    {clinicType.name}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-6 h-6 rounded-full"
+                        style={{ backgroundColor: clinicType.color }}
+                      />
+                      <span>{clinicType.color}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={clinicType.isActive}
+                        onCheckedChange={(checked) =>
+                          handleStatusChange(clinicType.id, checked)
+                        }
+                      />
+                      <span>{clinicType.isActive ? "Active" : "Inactive"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Dialog
+                        open={
+                          isEditDialogOpen &&
+                          selectedClinicType?.id === clinicType.id
+                        }
+                        onOpenChange={(open) => {
+                          setIsEditDialogOpen(open);
+                          if (!open) setSelectedClinicType(null);
+                        }}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSelectedClinicType(clinicType)}
+                          >
+                            <Edit size={16} />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit Clinic Type</DialogTitle>
+                            <DialogDescription>
+                              Update the clinic type details.
+                            </DialogDescription>
+                          </DialogHeader>
+                          {selectedClinicType && (
+                            <div className="grid gap-4 py-4">
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <label
+                                  htmlFor="edit-name"
+                                  className="text-right"
+                                >
+                                  Name
+                                </label>
                                 <Input
-                                  id="edit-color"
-                                  type="color"
-                                  value={selectedClinicType.color}
+                                  id="edit-name"
+                                  value={selectedClinicType.name}
                                   onChange={(e) =>
                                     setSelectedClinicType({
                                       ...selectedClinicType,
-                                      color: e.target.value,
+                                      name: e.target.value,
                                     })
                                   }
-                                  className="w-12 h-9 p-1"
-                                />
-                                <Input
-                                  value={selectedClinicType.color}
-                                  onChange={(e) =>
-                                    setSelectedClinicType({
-                                      ...selectedClinicType,
-                                      color: e.target.value,
-                                    })
-                                  }
-                                  className="flex-1"
+                                  className="col-span-3"
                                 />
                               </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <label
+                                  htmlFor="edit-color"
+                                  className="text-right"
+                                >
+                                  Color
+                                </label>
+                                <div className="col-span-3 flex items-center gap-2">
+                                  <Input
+                                    id="edit-color"
+                                    type="color"
+                                    value={selectedClinicType.color}
+                                    onChange={(e) =>
+                                      setSelectedClinicType({
+                                        ...selectedClinicType,
+                                        color: e.target.value,
+                                      })
+                                    }
+                                    className="w-12 h-9 p-1"
+                                  />
+                                  <Input
+                                    value={selectedClinicType.color}
+                                    onChange={(e) =>
+                                      setSelectedClinicType({
+                                        ...selectedClinicType,
+                                        color: e.target.value,
+                                      })
+                                    }
+                                    className="flex-1"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <label
+                                  htmlFor="edit-status"
+                                  className="text-right"
+                                >
+                                  Status
+                                </label>
+                                <div className="flex items-center gap-2 col-span-3">
+                                  <Switch
+                                    id="edit-status"
+                                    checked={selectedClinicType.isActive}
+                                    onCheckedChange={(checked) =>
+                                      setSelectedClinicType({
+                                        ...selectedClinicType,
+                                        isActive: checked,
+                                      })
+                                    }
+                                  />
+                                  <span>
+                                    {selectedClinicType.isActive
+                                      ? "Active"
+                                      : "Inactive"}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <label
-                                htmlFor="edit-status"
-                                className="text-right"
-                              >
-                                Status
-                              </label>
-                              <div className="flex items-center gap-2 col-span-3">
-                                <Switch
-                                  id="edit-status"
-                                  checked={selectedClinicType.isActive}
-                                  onCheckedChange={(checked) =>
-                                    setSelectedClinicType({
-                                      ...selectedClinicType,
-                                      isActive: checked,
-                                    })
-                                  }
+                          )}
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setIsEditDialogOpen(false);
+                                setSelectedClinicType(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button onClick={handleUpdateClinicType}>
+                              Save Changes
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
+                      <Dialog
+                        open={
+                          isDeleteDialogOpen &&
+                          selectedClinicType?.id === clinicType.id
+                        }
+                        onOpenChange={(open) => {
+                          setIsDeleteDialogOpen(open);
+                          if (!open) setSelectedClinicType(null);
+                        }}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            onClick={() => setSelectedClinicType(clinicType)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Clinic Type</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to delete this clinic type?
+                              This action cannot be undone.
+                            </DialogDescription>
+                          </DialogHeader>
+                          {selectedClinicType && (
+                            <div className="py-4">
+                              <p className="mb-2">You are about to delete:</p>
+                              <div className="flex items-center gap-2 p-3 border rounded-md">
+                                <div
+                                  className="w-6 h-6 rounded-full"
+                                  style={{
+                                    backgroundColor: selectedClinicType.color,
+                                  }}
                                 />
-                                <span>
-                                  {selectedClinicType.isActive
-                                    ? "Active"
-                                    : "Inactive"}
+                                <span className="font-medium">
+                                  {selectedClinicType.name}
                                 </span>
                               </div>
                             </div>
-                          </div>
-                        )}
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setIsEditDialogOpen(false);
-                              setSelectedClinicType(null);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button onClick={handleUpdateClinicType}>
-                            Save Changes
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-
-                    <Dialog
-                      open={
-                        isDeleteDialogOpen &&
-                        selectedClinicType?.id === clinicType.id
-                      }
-                      onOpenChange={(open) => {
-                        setIsDeleteDialogOpen(open);
-                        if (!open) setSelectedClinicType(null);
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                          onClick={() => setSelectedClinicType(clinicType)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Delete Clinic Type</DialogTitle>
-                          <DialogDescription>
-                            Are you sure you want to delete this clinic type?
-                            This action cannot be undone.
-                          </DialogDescription>
-                        </DialogHeader>
-                        {selectedClinicType && (
-                          <div className="py-4">
-                            <p className="mb-2">You are about to delete:</p>
-                            <div className="flex items-center gap-2 p-3 border rounded-md">
-                              <div
-                                className="w-6 h-6 rounded-full"
-                                style={{
-                                  backgroundColor: selectedClinicType.color,
-                                }}
-                              />
-                              <span className="font-medium">
-                                {selectedClinicType.name}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setIsDeleteDialogOpen(false);
-                              setSelectedClinicType(null);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={handleDeleteClinicType}
-                          >
-                            Delete
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                          )}
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setIsDeleteDialogOpen(false);
+                                setSelectedClinicType(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={handleDeleteClinicType}
+                            >
+                              Delete
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>

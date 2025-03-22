@@ -122,69 +122,115 @@ const MonthView: React.FC<MonthViewProps> = ({
   // Fetch notes and comments for the current month
   useEffect(() => {
     const fetchNotesAndComments = async () => {
-      const formattedDate = format(viewDate, "yyyy-MM");
+      try {
+        const formattedDate = format(viewDate, "yyyy-MM");
+        const firstDayOfMonth = format(startOfMonth(viewDate), "yyyy-MM-dd");
 
-      // Fetch notes
-      const { data: notesData } = await supabase
-        .from("calendar_notes")
-        .select("*")
-        .like("date", `${formattedDate}%`)
-        .order("date", { ascending: true });
+        // Fetch notes
+        const { data: notesData, error: notesError } = await supabase
+          .from("calendar_notes")
+          .select("*")
+          .like("date", `${formattedDate}%`)
+          .order("date", { ascending: true });
 
-      if (notesData && notesData.length > 0) {
-        // Just use the first note for this month
-        setCalendarNotes(notesData[0].notes);
-      } else {
-        setCalendarNotes(
-          "<p>This is the schedule for all providers this month. Please check with the clinic before making any changes to your personal schedule.</p><p>Reminder: All vacation requests must be submitted at least 2 weeks in advance.</p>",
-        );
-      }
+        if (notesError) {
+          console.error("Error fetching notes:", notesError);
+          return;
+        }
 
-      // Fetch comments
-      const { data: commentsData } = await supabase
-        .from("calendar_comments")
-        .select("*")
-        .like("date", `${formattedDate}%`)
-        .order("created_at", { ascending: true });
+        if (notesData && notesData.length > 0) {
+          // Just use the first note for this month
+          setCalendarNotes(notesData[0].notes || "");
+        } else {
+          // If no notes exist, create a default note for this month
+          const defaultNote =
+            "<p>This is the schedule for all providers this month. Please check with the clinic before making any changes to your personal schedule.</p><p>Reminder: All vacation requests must be submitted at least 2 weeks in advance.</p>";
+          setCalendarNotes(defaultNote);
 
-      if (commentsData && commentsData.length > 0) {
-        const formattedComments = commentsData.map((comment) => ({
-          id: comment.id,
-          author: comment.author,
-          authorId: comment.author_id,
-          avatarUrl: comment.avatar_url,
-          content: comment.content,
-          createdAt: new Date(comment.created_at),
-        }));
-        setCalendarComments(formattedComments);
-      } else {
-        // Default comments if none exist
-        setCalendarComments([
-          {
-            id: "1",
-            author: "Dr. Smith",
-            authorId: "1",
-            content: "I'll be attending the medical conference on the 15th.",
-            createdAt: new Date(viewDate.getFullYear(), viewDate.getMonth(), 5),
-          },
-          {
-            id: "2",
-            author: "Admin",
-            authorId: "admin1",
-            content:
-              "Please note that the clinic will be closed for maintenance on the last weekend of the month.",
-            createdAt: new Date(
-              viewDate.getFullYear(),
-              viewDate.getMonth(),
-              10,
-            ),
-          },
-        ]);
+          // Create default note in database if admin
+          if (isAdmin) {
+            await supabase
+              .from("calendar_notes")
+              .insert({
+                date: firstDayOfMonth,
+                notes: defaultNote,
+                user_id: currentUser.id,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .single();
+          }
+        }
+
+        // Fetch comments
+        const { data: commentsData, error: commentsError } = await supabase
+          .from("calendar_comments")
+          .select("*")
+          .like("date", `${formattedDate}%`)
+          .order("created_at", { ascending: true });
+
+        if (commentsError) {
+          console.error("Error fetching comments:", commentsError);
+          return;
+        }
+
+        if (commentsData && commentsData.length > 0) {
+          const formattedComments = commentsData.map((comment) => ({
+            id: comment.id,
+            author: comment.author || "Unknown User",
+            authorId: comment.author_id || "unknown",
+            avatarUrl: comment.avatar_url,
+            content: comment.content || "",
+            createdAt: new Date(comment.created_at || Date.now()),
+          }));
+          setCalendarComments(formattedComments);
+        } else {
+          // Empty array if no comments exist
+          setCalendarComments([]);
+        }
+      } catch (error) {
+        console.error("Error fetching calendar data:", error);
       }
     };
 
     fetchNotesAndComments();
-  }, [viewDate]);
+
+    // Set up realtime subscriptions
+    const formattedMonth = format(viewDate, "yyyy-MM");
+
+    const notesSubscription = supabase
+      .channel(`month_notes_${formattedMonth}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "calendar_notes",
+          filter: `date=like.${formattedMonth}%`,
+        },
+        fetchNotesAndComments,
+      )
+      .subscribe();
+
+    const commentsSubscription = supabase
+      .channel(`month_comments_${formattedMonth}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "calendar_comments",
+          filter: `date=like.${formattedMonth}%`,
+        },
+        fetchNotesAndComments,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(notesSubscription);
+      supabase.removeChannel(commentsSubscription);
+    };
+  }, [viewDate, isAdmin, currentUser.id]);
 
   // Navigate to previous/next month
   const prevMonth = () => {
@@ -392,7 +438,11 @@ const MonthView: React.FC<MonthViewProps> = ({
             variant="ghost"
             size="icon"
             className="h-6 w-6"
-            onClick={() => onAddShift(day)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAddShift(day);
+            }}
           >
             <Plus className="h-4 w-4" />
           </Button>

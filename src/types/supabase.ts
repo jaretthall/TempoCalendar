@@ -69,6 +69,33 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_types: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -95,6 +122,84 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      providers: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shifts: {
+        Row: {
+          clinic_type_id: string
+          created_at: string
+          end_date: string
+          id: string
+          is_vacation: boolean
+          notes: string | null
+          provider_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_type_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          is_vacation?: boolean
+          notes?: string | null
+          provider_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_type_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_vacation?: boolean
+          notes?: string | null
+          provider_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_clinic_type_id_fkey"
+            columns: ["clinic_type_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

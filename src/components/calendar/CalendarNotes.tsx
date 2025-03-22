@@ -79,7 +79,7 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
       }
 
       if (notesData) {
-        setEditedNotes(notesData.notes);
+        setEditedNotes(notesData.notes || "");
       }
 
       // Fetch comments
@@ -98,16 +98,18 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
         });
       }
 
-      if (commentsData) {
+      if (commentsData && commentsData.length > 0) {
         const formattedComments = commentsData.map((comment) => ({
           id: comment.id,
-          author: comment.author,
-          authorId: comment.author_id,
+          author: comment.author || "Unknown User",
+          authorId: comment.author_id || "unknown",
           avatarUrl: comment.avatar_url,
-          content: comment.content,
-          createdAt: new Date(comment.created_at),
+          content: comment.content || "",
+          createdAt: new Date(comment.created_at || Date.now()),
         }));
         setDisplayComments(formattedComments);
+      } else {
+        setDisplayComments([]);
       }
     } catch (error) {
       console.error("Error in fetchNotesAndComments:", error);
@@ -224,8 +226,11 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
       try {
         setIsLoading(true);
 
+        const commentId = `comment-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
         // Insert comment into Supabase
         const { error } = await supabase.from("calendar_comments").insert({
+          id: commentId,
           date: formattedDate,
           author: currentUser.name,
           author_id: currentUser.id,
@@ -239,17 +244,9 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
           throw error;
         }
 
-        // In a real app, this would be handled by the backend
-        const newCommentObj: Comment = {
-          id: `comment-${Date.now()}`,
-          author: currentUser.name,
-          authorId: currentUser.id,
-          avatarUrl: currentUser.avatarUrl,
-          content: newComment,
-          createdAt: new Date(),
-        };
-
-        setDisplayComments([...displayComments, newCommentObj]);
+        // We don't need to manually add the comment to the state
+        // as the realtime subscription will handle this
+        // But we'll clear the input and notify the user
         onAddComment(newComment);
         setNewComment("");
         toast({
