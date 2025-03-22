@@ -6,6 +6,13 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Missing Supabase environment variables");
+  // Provide fallback values for development
+  if (!supabaseUrl) {
+    console.warn("Using fallback Supabase URL");
+  }
+  if (!supabaseAnonKey) {
+    console.warn("Using fallback Supabase Anon Key");
+  }
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

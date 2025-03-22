@@ -81,7 +81,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         .select("*")
         .order("name");
 
-      if (providersError) throw providersError;
+      if (providersError) {
+        console.error("Error fetching providers:", providersError);
+        // Fall back to mock data if database tables don't exist yet
+        setAllProviders(providers);
+      } else if (providersData && providersData.length > 0) {
+        // Format data for the component
+        const formattedProviders = providersData.map((p) => ({
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          isActive: p.is_active,
+        }));
+        setAllProviders(formattedProviders);
+      } else {
+        // Use props data if no database data
+        setAllProviders(providers);
+      }
 
       // Fetch clinic types
       const { data: clinicTypesData, error: clinicTypesError } = await supabase
@@ -89,7 +105,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         .select("*")
         .order("name");
 
-      if (clinicTypesError) throw clinicTypesError;
+      if (clinicTypesError) {
+        console.error("Error fetching clinic types:", clinicTypesError);
+        // Fall back to mock data if database tables don't exist yet
+        setAllClinicTypes(clinicTypes);
+      } else if (clinicTypesData && clinicTypesData.length > 0) {
+        const formattedClinicTypes = clinicTypesData.map((c) => ({
+          id: c.id,
+          name: c.name,
+          color: c.color,
+          isActive: c.is_active,
+        }));
+        setAllClinicTypes(formattedClinicTypes);
+      } else {
+        // Use props data if no database data
+        setAllClinicTypes(clinicTypes);
+      }
 
       // Fetch shifts
       const { data: shiftsData, error: shiftsError } = await supabase
@@ -97,37 +128,29 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         .select("*")
         .order("start_date");
 
-      if (shiftsError) throw shiftsError;
+      if (shiftsError) {
+        console.error("Error fetching shifts:", shiftsError);
+        // Fall back to mock data if database tables don't exist yet
+        setAllShifts(shifts);
+      }
 
-      // Format data for the component
-      const formattedProviders = providersData.map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: p.color,
-        isActive: p.is_active,
-      }));
-
-      const formattedClinicTypes = clinicTypesData.map((c) => ({
-        id: c.id,
-        name: c.name,
-        color: c.color,
-        isActive: c.is_active,
-      }));
-
-      const formattedShifts = shiftsData.map((s) => ({
-        id: s.id,
-        providerId: s.provider_id,
-        clinicTypeId: s.clinic_type_id,
-        startDate: new Date(s.start_date),
-        endDate: new Date(s.end_date),
-        isVacation: s.is_vacation,
-        notes: s.notes,
-        location: s.location,
-      }));
-
-      setAllProviders(formattedProviders);
-      setAllClinicTypes(formattedClinicTypes);
-      setAllShifts(formattedShifts);
+      // Format shifts data if available
+      if (shiftsData && shiftsData.length > 0) {
+        const formattedShifts = shiftsData.map((s) => ({
+          id: s.id,
+          providerId: s.provider_id,
+          clinicTypeId: s.clinic_type_id,
+          startDate: new Date(s.start_date),
+          endDate: new Date(s.end_date),
+          isVacation: s.is_vacation,
+          notes: s.notes,
+          location: s.location,
+        }));
+        setAllShifts(formattedShifts);
+      } else {
+        // Use props data if no database data
+        setAllShifts(shifts);
+      }
     } catch (err) {
       console.error("Error fetching calendar data:", err);
       setError("Failed to load calendar data. Please try again later.");
