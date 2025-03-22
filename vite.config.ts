@@ -12,7 +12,8 @@ if (process.env.TEMPO === "true") {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === "development" ? "/" : "/TempoCalendar/",
+  // Use a consistent base path that works for both development and GitHub Pages
+  base: "/",
   optimizeDeps: {
     entries: ["src/main.tsx", "src/tempobook/**/*"],
   },
@@ -31,6 +32,11 @@ export default defineConfig({
   server: {
     // @ts-ignore
     allowedHosts: true,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "max-age=86400, must-revalidate",
+    },
   },
   build: {
     outDir: "dist",
@@ -46,15 +52,5 @@ export default defineConfig({
     },
     // Ensure proper content types are set
     assetsInlineLimit: 0,
-  },
-  // Add proper MIME type mappings
-  server: {
-    // @ts-ignore
-    allowedHosts: true,
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "max-age=86400, must-revalidate",
-    },
   },
 });
