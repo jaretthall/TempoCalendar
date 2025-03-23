@@ -385,8 +385,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         selectedClinicTypes={filteredClinicTypes}
         onDateChange={handleDateChange}
         onViewChange={handleViewChange}
-        onProviderFilterChange={handleProviderFilterChange}
-        onClinicTypeFilterChange={handleClinicTypeFilterChange}
+        onFilterChange={({ providers, clinicTypes }) => {
+          handleProviderFilterChange(providers);
+          handleClinicTypeFilterChange(clinicTypes);
+        }}
+        onAddShift={() => onAddShift(currentDate)}
       />
 
       {isLoading ? (

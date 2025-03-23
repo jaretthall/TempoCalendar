@@ -1,23 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "@/types/supabase";
 
-let supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// Get environment variables with fallbacks to prevent runtime errors
+let supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL || "https://placeholder-url.supabase.co";
+let supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder-key";
 
-// Check for missing environment variables and provide fallbacks for development
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing Supabase environment variables");
+// Log warnings if environment variables are missing
+if (!import.meta.env.VITE_SUPABASE_URL) {
+  console.warn(
+    "Missing VITE_SUPABASE_URL environment variable, using fallback",
+  );
+}
 
-  // Use empty strings as fallbacks to prevent runtime errors
-  // The application will still show appropriate errors for missing credentials
-  if (!supabaseUrl) {
-    console.warn("Using fallback Supabase URL");
-    supabaseUrl = "https://placeholder-url.supabase.co";
-  }
-  if (!supabaseAnonKey) {
-    console.warn("Using fallback Supabase Anon Key");
-    supabaseAnonKey = "placeholder-key";
-  }
+if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  console.warn(
+    "Missing VITE_SUPABASE_ANON_KEY environment variable, using fallback",
+  );
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

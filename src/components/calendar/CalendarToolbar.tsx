@@ -38,6 +38,8 @@ interface CalendarToolbarProps {
   providers?: Array<{ id: string; name: string; color: string }>;
   clinicTypes?: Array<{ id: string; name: string; color: string }>;
   view?: "month" | "three-month";
+  selectedProviders?: string[];
+  selectedClinicTypes?: string[];
 }
 
 const CalendarToolbar = ({
@@ -49,9 +51,15 @@ const CalendarToolbar = ({
   providers = [],
   clinicTypes = [],
   view = "month",
+  selectedProviders: initialSelectedProviders = [],
+  selectedClinicTypes: initialSelectedClinicTypes = [],
 }: CalendarToolbarProps) => {
-  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
-  const [selectedClinicTypes, setSelectedClinicTypes] = useState<string[]>([]);
+  const [selectedProviders, setSelectedProviders] = useState<string[]>(
+    initialSelectedProviders,
+  );
+  const [selectedClinicTypes, setSelectedClinicTypes] = useState<string[]>(
+    initialSelectedClinicTypes,
+  );
   const [allProviders, setAllProviders] = useState(providers);
   const [allClinicTypes, setAllClinicTypes] = useState(clinicTypes);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,6 +74,16 @@ const CalendarToolbar = ({
       setAllClinicTypes(clinicTypes);
     }
   }, [providers, clinicTypes]);
+
+  // Initialize selected filters from props
+  useEffect(() => {
+    if (initialSelectedProviders.length > 0) {
+      setSelectedProviders(initialSelectedProviders);
+    }
+    if (initialSelectedClinicTypes.length > 0) {
+      setSelectedClinicTypes(initialSelectedClinicTypes);
+    }
+  }, [initialSelectedProviders, initialSelectedClinicTypes]);
 
   // Fetch data from Supabase
   const fetchData = useCallback(async () => {

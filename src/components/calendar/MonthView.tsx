@@ -31,6 +31,7 @@ interface Shift {
   endDate: Date;
   isVacation: boolean;
   notes?: string;
+  location?: string;
 }
 
 interface Provider {

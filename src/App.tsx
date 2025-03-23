@@ -1,20 +1,24 @@
 import { Suspense } from "react";
-import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/home";
 import Calendar from "./pages/Calendar";
-import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Notes from "./pages/Notes";
+import Settings from "./pages/Settings";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProviderManagement from "./components/providers/ProviderManagement";
 import ClinicTypeManagement from "./components/clinics/ClinicTypeManagement";
-import routes from "tempo-routes";
 
 function App() {
   return (
     <AuthProvider>
-      <Suspense fallback={<p>Loading...</p>}>
-        {import.meta.env.VITE_TEMPO && useRoutes(routes)}
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center h-screen">
+            Loading...
+          </div>
+        }
+      >
         <Routes>
           <Route path="/" element={<Calendar />} />
           <Route path="/calendar" element={<Calendar />} />

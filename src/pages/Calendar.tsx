@@ -14,10 +14,11 @@ interface Shift {
   id: string;
   providerId: string;
   clinicTypeId: string;
-  startTime: Date;
-  endTime: Date;
+  startDate: Date;
+  endDate: Date;
   isVacation: boolean;
   notes?: string;
+  location?: string;
 }
 
 interface ShiftFormValues {
@@ -88,37 +89,41 @@ const Calendar: React.FC = () => {
       id: "1",
       providerId: "1",
       clinicTypeId: "1",
-      startTime: new Date(new Date().setHours(9, 0, 0, 0)),
-      endTime: new Date(new Date().setHours(17, 0, 0, 0)),
+      startDate: new Date(new Date().setHours(9, 0, 0, 0)),
+      endDate: new Date(new Date().setHours(17, 0, 0, 0)),
       isVacation: false,
       notes: "Regular shift at Clinica Medicos",
+      location: "Main Clinic",
     },
     {
       id: "2",
       providerId: "2",
       clinicTypeId: "1",
-      startTime: new Date(new Date().setDate(new Date().getDate() + 1)),
-      endTime: new Date(new Date().setDate(new Date().getDate() + 1)),
+      startDate: new Date(new Date().setDate(new Date().getDate() + 1)),
+      endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
       isVacation: false,
       notes: "Clinica Medicos shift",
+      location: "Main Clinic",
     },
     {
       id: "3",
       providerId: "3",
       clinicTypeId: "1",
-      startTime: new Date(new Date().setDate(new Date().getDate() + 3)),
-      endTime: new Date(new Date().setDate(new Date().getDate() + 3)),
+      startDate: new Date(new Date().setDate(new Date().getDate() + 3)),
+      endDate: new Date(new Date().setDate(new Date().getDate() + 3)),
       isVacation: false,
       notes: "Clinica Medicos shift",
+      location: "Main Clinic",
     },
     {
       id: "4",
       providerId: "1",
       clinicTypeId: "1",
-      startTime: new Date(new Date().setDate(new Date().getDate() + 5)),
-      endTime: new Date(new Date().setDate(new Date().getDate() + 5)),
+      startDate: new Date(new Date().setDate(new Date().getDate() + 5)),
+      endDate: new Date(new Date().setDate(new Date().getDate() + 5)),
       isVacation: true,
       notes: "Vacation day",
+      location: "",
     },
   ]);
 
@@ -156,15 +161,15 @@ const Calendar: React.FC = () => {
   // Handle saving a shift
   const handleSaveShift = (formValues: ShiftFormValues) => {
     // Convert form values to shift object
-    const startTime = new Date(formValues.startDate);
+    const startDate = new Date(formValues.startDate);
     const [startHours, startMinutes] = formValues.startTime
       .split(":")
       .map(Number);
-    startTime.setHours(startHours, startMinutes, 0, 0);
+    startDate.setHours(startHours, startMinutes, 0, 0);
 
-    const endTime = new Date(formValues.endDate);
+    const endDate = new Date(formValues.endDate);
     const [endHours, endMinutes] = formValues.endTime.split(":").map(Number);
-    endTime.setHours(endHours, endMinutes, 0, 0);
+    endDate.setHours(endHours, endMinutes, 0, 0);
 
     if (isEditing && selectedShift) {
       // Update existing shift
@@ -174,10 +179,11 @@ const Calendar: React.FC = () => {
               ...shift,
               providerId: formValues.providerId,
               clinicTypeId: formValues.clinicTypeId,
-              startTime,
-              endTime,
+              startDate,
+              endDate,
               isVacation: formValues.isVacation,
               notes: formValues.notes,
+              location: formValues.location,
             }
           : shift,
       );
@@ -188,10 +194,11 @@ const Calendar: React.FC = () => {
         id: `shift-${Date.now()}`,
         providerId: formValues.providerId,
         clinicTypeId: formValues.clinicTypeId,
-        startTime,
-        endTime,
+        startDate,
+        endDate,
         isVacation: formValues.isVacation,
         notes: formValues.notes,
+        location: formValues.location,
       };
       setShifts([...shifts, newShift]);
     }
@@ -207,14 +214,14 @@ const Calendar: React.FC = () => {
     return {
       providerId: selectedShift.providerId,
       clinicTypeId: selectedShift.clinicTypeId,
-      startDate: new Date(selectedShift.startTime),
-      endDate: new Date(selectedShift.endTime),
-      startTime: `${selectedShift.startTime.getHours().toString().padStart(2, "0")}:${selectedShift.startTime.getMinutes().toString().padStart(2, "0")}`,
-      endTime: `${selectedShift.endTime.getHours().toString().padStart(2, "0")}:${selectedShift.endTime.getMinutes().toString().padStart(2, "0")}`,
+      startDate: new Date(selectedShift.startDate),
+      endDate: new Date(selectedShift.endDate),
+      startTime: `${selectedShift.startDate.getHours().toString().padStart(2, "0")}:${selectedShift.startDate.getMinutes().toString().padStart(2, "0")}`,
+      endTime: `${selectedShift.endDate.getHours().toString().padStart(2, "0")}:${selectedShift.endDate.getMinutes().toString().padStart(2, "0")}`,
       isVacation: selectedShift.isVacation,
       isRecurring: false,
       notes: selectedShift.notes,
-      location: "",
+      location: selectedShift.location || "",
     };
   };
 
