@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CalendarNotes from "./CalendarNotes";
 import { supabase } from "@/lib/supabase";
+import { formatDateForDisplay, doesShiftOccurOnDate, getShiftsForDate as getShiftsForDateUtil } from "@/utils/date-utils";
 
 interface Shift {
   id: string;
@@ -300,16 +301,9 @@ const MonthView: React.FC<MonthViewProps> = ({
           },
         ];
 
-  // Get shifts for a specific day
-  const getShiftsForDay = (day: Date) => {
-    return mockShifts.filter((shift) => {
-      const shiftDate = new Date(shift.startDate);
-      return (
-        shiftDate.getDate() === day.getDate() &&
-        shiftDate.getMonth() === day.getMonth() &&
-        shiftDate.getFullYear() === day.getFullYear()
-      );
-    });
+  // Get shifts for a specific date
+  const getShiftsForDate = (date: Date) => {
+    return getShiftsForDateUtil(shifts, date);
   };
 
   // Get provider by ID
@@ -347,113 +341,98 @@ const MonthView: React.FC<MonthViewProps> = ({
     // Actual saving is handled in the CalendarNotes component
   };
 
-  // Render shift pill
-  const renderShift = (shift: Shift, index: number, totalShifts: number) => {
-    const provider = getProvider(shift.providerId);
-    const clinicType = getClinicType(shift.clinicTypeId);
+  // Function to get provider color by ID
+  const getProviderColor = (providerId: string) => {
+    const provider = providers.find((p) => p.id === providerId);
+    return provider?.color || "#888888";
+  };
 
-    // Determine if we should show compact view (squares) based on number of shifts
-    const isCompact = totalShifts > 4;
-
+  // Render a shift in the calendar cell with special styling for vacations
+  const renderShift = (shift: any, index: number) => {
+    const providerColor = getProviderColor(shift.providerId);
+    const provider = providers.find((p) => p.id === shift.providerId);
+    const providerName = provider?.name || "Unknown";
+    
+    const clinicType = clinicTypes.find((c) => c.id === shift.clinicTypeId);
+    const clinicTypeName = clinicType?.name || "Unknown";
+    
     return (
-      <TooltipProvider key={shift.id}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className={cn(
-                "cursor-pointer mb-1",
-                isCompact
-                  ? "inline-block mr-1 rounded-sm"
-                  : "rounded-md text-xs truncate",
-                shift.isVacation
-                  ? "bg-purple-200 border-2 border-purple-500 border-dashed"
-                  : "text-white",
-              )}
-              style={{
-                backgroundColor: shift.isVacation ? undefined : provider.color,
-                borderLeft: !shift.isVacation
-                  ? `4px solid ${clinicType.color}`
-                  : undefined,
-                width: isCompact ? "20px" : "auto",
-                height: isCompact ? "20px" : "auto",
-                padding: isCompact ? "0" : "0.25rem 0.5rem",
-              }}
-              onClick={() => onShiftClick(shift)}
-            >
-              {!isCompact && (
-                <>
-                  <span className="font-medium">
-                    {shift.isVacation ? "🏖️ Vacation" : provider.name}
-                  </span>
-                </>
-              )}
-              {isCompact && shift.isVacation && (
-                <span className="flex items-center justify-center h-full text-xs">
-                  🏖️
-                </span>
-              )}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div>
-              <div className="font-bold">{provider.name}</div>
-              <div>{clinicType.name}</div>
-              {shift.isVacation && (
-                <div className="mt-1 font-semibold text-purple-600">
-                  Vacation
-                </div>
-              )}
-              {shift.notes && <div className="mt-1 text-xs">{shift.notes}</div>}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip key={index}>
+        <TooltipTrigger>
+          <div
+            className={cn(
+              "text-xs rounded-sm px-1 truncate mb-1 cursor-pointer border-l-2",
+              shift.isVacation 
+                ? "bg-gradient-to-r from-purple-50 to-purple-100 border-purple-400 italic text-purple-800"
+                : "bg-opacity-80 border-l-2"
+            )}
+            style={{
+              borderLeftColor: providerColor,
+              backgroundColor: shift.isVacation ? undefined : `${providerColor}20`,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShiftClick(shift);
+            }}
+          >
+            {shift.isVacation ? "🏖️ " : ""}{providerName} 
+            {!shift.isVacation && ` - ${clinicTypeName}`}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="text-xs">
+            <p className="font-bold">{providerName}</p>
+            {!shift.isVacation && <p>{clinicTypeName}</p>}
+            <p>{shift.isVacation ? "Vacation" : "All Day"}</p>
+            {shift.location && <p>Location: {shift.location}</p>}
+            {shift.notes && <p>Notes: {shift.notes}</p>}
+          </div>
+        </TooltipContent>
+      </Tooltip>
     );
   };
 
-  // Render day cell
+  // Render individual day cell
   const renderDay = (day: Date, index: number) => {
     const isCurrentMonth = isSameMonth(day, viewDate);
     const isTodayDate = isToday(day);
-    const dayShifts = getShiftsForDay(day);
+    const dayShifts = getShiftsForDate(day);
 
     return (
       <div
         key={index}
         className={cn(
-          "border h-32 p-1 overflow-hidden",
-          !isCurrentMonth && "bg-gray-50 text-gray-400",
-          isTodayDate && "bg-blue-50",
+          "min-h-[100px] p-1 border border-gray-100 relative",
+          isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-400",
+          isTodayDate ? "bg-blue-50" : ""
         )}
+        onClick={() => onDateClick(day)}
       >
-        <div className="flex justify-between items-start">
-          <span
-            className={cn(
-              "inline-flex items-center justify-center w-6 h-6 text-sm",
-              isTodayDate && "bg-blue-500 text-white rounded-full",
-            )}
-          >
-            {format(day, "d")}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onAddShift(day);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+        <div
+          className={cn(
+            "flex justify-between mb-1",
+            isTodayDate ? "font-bold text-blue-600" : ""
+          )}
+        >
+          <span className="text-sm">{format(day, "d")}</span>
+          {isCurrentMonth && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddShift(day);
+              }}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          )}
         </div>
-        <div className="mt-1 overflow-y-auto max-h-[calc(100%-1.5rem)]">
-          <div className={dayShifts.length > 4 ? "flex flex-wrap" : ""}>
-            {dayShifts.map((shift, index) =>
-              renderShift(shift, index, dayShifts.length),
-            )}
-          </div>
+
+        {/* Display the shifts for the day */}
+        <div className="space-y-1 overflow-y-auto max-h-[75px]">
+          {dayShifts.map((shift, idx) => renderShift(shift, idx))}
         </div>
       </div>
     );

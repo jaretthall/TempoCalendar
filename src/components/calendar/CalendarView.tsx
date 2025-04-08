@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import ShiftDialog from "../shifts/ShiftDialog";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { expandRecurringShift } from "@/utils/date-utils";
 
 interface Shift {
   id: string;
@@ -18,6 +19,8 @@ interface Shift {
   isVacation: boolean;
   notes?: string;
   location?: string;
+  isRecurring?: boolean;
+  recurrencePattern?: string;
 }
 
 interface Provider {
@@ -138,13 +141,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       if (shiftsData && shiftsData.length > 0) {
         const formattedShifts = shiftsData.map((s) => ({
           id: s.id,
-          providerId: s.provider_id,
-          clinicTypeId: s.clinic_type_id,
-          startDate: new Date(s.start_date),
-          endDate: new Date(s.end_date),
-          isVacation: s.is_vacation,
-          notes: s.notes,
-          location: s.location,
+          providerId: s.provider_id || s.providerId,
+          clinicTypeId: s.clinic_type_id || s.clinicTypeId,
+          startDate: new Date(s.start_date || s.startDate),
+          endDate: new Date(s.end_date || s.endDate),
+          isVacation: s.is_vacation || s.isVacation || false,
+          notes: s.notes || "",
+          location: s.location || "",
+          isRecurring: s.is_recurring || s.isRecurring || false,
+          recurrencePattern: s.recurrence_pattern || s.recurrencePattern || "",
         }));
         setAllShifts(formattedShifts);
       } else {
@@ -217,7 +222,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Filter shifts based on selected providers and clinic types
   const filteredShifts = useMemo(() => {
-    return allShifts.filter((shift) => {
+    // First expand any recurring shifts
+    const expandedShifts = allShifts.flatMap(shift => {
+      // Only process shifts with recurrence data
+      if (shift.isRecurring && shift.recurrencePattern) {
+        return expandRecurringShift(shift);
+      }
+      return [shift];
+    });
+    
+    // Then apply the filters
+    return expandedShifts.filter((shift) => {
       const providerMatch =
         filteredProviders.length === 0 ||
         filteredProviders.includes(shift.providerId);

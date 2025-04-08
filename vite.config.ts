@@ -5,8 +5,8 @@ import { tempo } from "tempo-devtools/dist/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Use a consistent base path that works for both development and GitHub Pages
-  base: "/",
+  // Use repository name for GitHub Pages
+  base: "/TempoCalendar/",
   optimizeDeps: {
     include: [
       "react",

@@ -4,6 +4,10 @@ import App from "./App";
 import "./index.css";
 import { HashRouter } from "react-router-dom";
 
+// Test data import
+import { testData } from "./lib/test-data";
+console.log("Data import test result:", testData);
+
 // Initialize Tempo conditionally
 try {
   if (import.meta.env.VITE_TEMPO === "true") {

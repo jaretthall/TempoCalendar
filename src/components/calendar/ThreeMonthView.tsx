@@ -24,6 +24,7 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 import CalendarNotes from "./CalendarNotes";
+import { formatDateForDisplay, doesShiftOccurOnDate, getShiftsForDate } from "@/utils/date-utils";
 
 interface Shift {
   id: string;
@@ -138,30 +139,54 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
 
   // Get shifts for a specific date
   const getShiftsForDate = (date: Date) => {
-    return mockShifts.filter((shift) => isSameDay(shift.startDate, date));
+    return shifts.filter((shift) => {
+      return doesShiftOccurOnDate(shift, date);
+    });
   };
 
   // Get provider by ID
   const getProvider = (providerId: string) => {
-    return (
-      providers.find((p) => p.id === providerId) || {
-        id: providerId,
-        name: "Unknown Provider",
-        color: "#6b7280",
-        isActive: true,
-      }
-    );
+    return providers.find((p) => p.id === providerId) || { name: "Unknown", color: "#888888" };
   };
 
   // Get clinic type by ID
   const getClinicType = (clinicTypeId: string) => {
+    return clinicTypes.find((c) => c.id === clinicTypeId) || { name: "Unknown", color: "#888888" };
+  };
+
+  // Render shifts with vacation styling
+  const renderShiftIndicator = (shift: Shift) => {
+    const provider = getProvider(shift.providerId);
+    
     return (
-      clinicTypes.find((c) => c.id === clinicTypeId) || {
-        id: clinicTypeId,
-        name: "Unknown Clinic",
-        color: "#6b7280",
-        isActive: true,
-      }
+      <TooltipProvider key={shift.id}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={`h-2 w-2 rounded-full my-1 mx-0.5 inline-block ${
+                shift.isVacation 
+                  ? "bg-purple-400 border border-purple-600" 
+                  : ""
+              }`}
+              style={{
+                backgroundColor: shift.isVacation ? undefined : provider.color,
+              }}
+            />
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs p-2">
+            <div>
+              <div className="font-bold">{provider.name}</div>
+              {!shift.isVacation && (
+                <div>{getClinicType(shift.clinicTypeId).name}</div>
+              )}
+              {shift.isVacation && (
+                <div className="text-purple-600 font-medium">Vacation</div>
+              )}
+              {shift.notes && <div className="mt-1">{shift.notes}</div>}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   };
 
@@ -277,76 +302,17 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
                         </div>
 
                         {/* Shifts for this day */}
-                        <div className="mt-1 overflow-hidden">
-                          <div className="flex flex-wrap gap-1">
-                            {dayShifts.map((shift, shiftIndex) => {
-                              const provider = getProvider(shift.providerId);
-                              const clinicType = getClinicType(
-                                shift.clinicTypeId,
-                              );
-                              // Use compact squares for all shifts in three-month view
-                              const isCompact = true;
-
-                              return (
-                                <TooltipProvider key={shiftIndex}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div
-                                        className={`${isCompact ? "w-3 h-3" : "text-[9px] truncate px-1 py-0.5"} rounded cursor-pointer ${shift.isVacation ? "bg-purple-200 border border-purple-500 border-dashed" : ""}`}
-                                        style={{
-                                          backgroundColor: shift.isVacation
-                                            ? undefined
-                                            : provider.color,
-                                          borderLeft:
-                                            !shift.isVacation && !isCompact
-                                              ? `2px solid ${clinicType.color}`
-                                              : undefined,
-                                        }}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onShiftClick(shift);
-                                        }}
-                                      >
-                                        {!isCompact && provider.name}
-                                        {isCompact && shift.isVacation && (
-                                          <span className="flex items-center justify-center h-full text-[6px]">
-                                            🏖️
-                                          </span>
-                                        )}
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <div className="p-2">
-                                        <p className="font-medium">
-                                          {provider.name}
-                                        </p>
-                                        <p className="text-sm">
-                                          {clinicType.name}
-                                        </p>
-                                        <p className="text-xs">
-                                          {format(shift.startDate, "MMM d")} -{" "}
-                                          {format(shift.endDate, "MMM d")}
-                                        </p>
-                                        {shift.isVacation && (
-                                          <Badge
-                                            variant="outline"
-                                            className="mt-1 bg-purple-100 text-purple-800 border-purple-300"
-                                          >
-                                            Vacation
-                                          </Badge>
-                                        )}
-                                        {shift.notes && (
-                                          <p className="text-xs mt-1">
-                                            {shift.notes}
-                                          </p>
-                                        )}
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              );
-                            })}
-                          </div>
+                        <div className="mt-1 flex flex-wrap">
+                          {dayShifts.length > 0 && (
+                            <>
+                              {dayShifts.slice(0, 5).map((shift) => renderShiftIndicator(shift))}
+                              {dayShifts.length > 5 && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                  +{dayShifts.length - 5}
+                                </span>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
                     );
