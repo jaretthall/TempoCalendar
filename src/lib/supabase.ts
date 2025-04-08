@@ -288,3 +288,55 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     return null;
   }
 }
+
+export interface Database {
+  public: {
+    Tables: {
+      shifts: {
+        Row: {
+          id: string;
+          provider_id: string;
+          clinic_type_id: string;
+          start_date: string;
+          end_date: string;
+          is_vacation: boolean;
+          notes: string;
+          location: string | null;
+          is_recurring: boolean | null;
+          recurrence_pattern: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          provider_id: string;
+          clinic_type_id: string;
+          start_date: string;
+          end_date: string;
+          is_vacation?: boolean;
+          notes?: string;
+          location?: string;
+          is_recurring?: boolean;
+          recurrence_pattern?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          provider_id?: string;
+          clinic_type_id?: string;
+          start_date?: string;
+          end_date?: string;
+          is_vacation?: boolean;
+          notes?: string;
+          location?: string;
+          is_recurring?: boolean;
+          recurrence_pattern?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      // ... other tables ...
+    };
+  };
+}

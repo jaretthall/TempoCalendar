@@ -49,6 +49,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
 import { normalizeDate } from "@/utils/date-utils";
+import { Separator } from "@/components/ui/separator";
 
 // Define the form schema with zod
 const shiftFormSchema = z.object({

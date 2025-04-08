@@ -141,15 +141,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       if (shiftsData && shiftsData.length > 0) {
         const formattedShifts = shiftsData.map((s) => ({
           id: s.id,
-          providerId: s.provider_id || s.providerId,
-          clinicTypeId: s.clinic_type_id || s.clinicTypeId,
-          startDate: new Date(s.start_date || s.startDate),
-          endDate: new Date(s.end_date || s.endDate),
-          isVacation: s.is_vacation || s.isVacation || false,
+          provider_id: s.provider_id,
+          clinic_type_id: s.clinic_type_id,
+          start_date: new Date(s.start_date),
+          end_date: new Date(s.end_date),
+          is_vacation: s.is_vacation || false,
           notes: s.notes || "",
           location: s.location || "",
-          isRecurring: s.is_recurring || s.isRecurring || false,
-          recurrencePattern: s.recurrence_pattern || s.recurrencePattern || "",
+          is_recurring: s.is_recurring || false,
+          recurrence_pattern: s.recurrence_pattern || "",
+          created_at: s.created_at,
+          updated_at: s.updated_at
         }));
         setAllShifts(formattedShifts);
       } else {

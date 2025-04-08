@@ -22,11 +22,13 @@ export interface Shift {
   id: string;
   provider_id: string;
   clinic_type_id: string;
-  start_date: string; // ISO format date string
-  end_date: string; // ISO format date string
+  start_date: Date;
+  end_date: Date;
   is_vacation: boolean;
-  notes?: string | null;
-  location?: string | null;
+  notes: string;
+  location?: string;
+  is_recurring?: boolean;
+  recurrence_pattern?: string;
   created_at: string;
   updated_at: string;
 }

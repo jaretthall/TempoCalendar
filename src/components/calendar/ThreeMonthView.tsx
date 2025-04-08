@@ -51,47 +51,39 @@ interface ClinicType {
   isActive: boolean;
 }
 
-interface ThreeMonthViewProps {
-  shifts?: Shift[];
-  providers?: Provider[];
-  clinicTypes?: ClinicType[];
-  onShiftClick?: (shift: Shift) => void;
-  onDateClick?: (date: Date) => void;
-  selectedDate?: Date;
+export interface ThreeMonthViewProps {
+  date: Date;
+  shifts: Shift[];
+  providers: Provider[];
+  clinicTypes: ClinicType[];
+  onShiftClick: (shift: Shift) => void;
+  onAddShift: (date: Date) => void;
 }
 
 const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
+  date,
   shifts = [],
-  providers = [
-    { id: "1", name: "Dr. Smith", color: "#4f46e5", isActive: true },
-    { id: "2", name: "Dr. Johnson", color: "#10b981", isActive: true },
-    { id: "3", name: "Dr. Williams", color: "#f59e0b", isActive: true },
-  ],
-  clinicTypes = [
-    { id: "1", name: "Primary Care", color: "#3b82f6", isActive: true },
-    { id: "2", name: "Specialty", color: "#ec4899", isActive: true },
-    { id: "3", name: "Urgent Care", color: "#ef4444", isActive: true },
-  ],
+  providers = [],
+  clinicTypes = [],
   onShiftClick = () => {},
-  onDateClick = () => {},
-  selectedDate = new Date(),
+  onAddShift = () => {},
 }) => {
-  const [baseMonth, setBaseMonth] = useState(startOfMonth(selectedDate));
+  const [currentDate, setCurrentDate] = useState(date);
 
   // Generate mock shifts if none provided
   const mockShifts = useMemo(() => {
     if (shifts.length > 0) return shifts;
 
     const result: Shift[] = [];
-    const startDate = startOfMonth(baseMonth);
-    const endDate = endOfMonth(addMonths(baseMonth, 2));
+    const startDate = startOfMonth(currentDate);
+    const endDate = endOfMonth(addMonths(currentDate, 2));
 
     // Generate some mock shifts for the three month period
     providers.forEach((provider) => {
       clinicTypes.forEach((clinicType) => {
         // Add a shift every 3 days for each provider/clinic combination
         for (let i = 0; i < 90; i += 3) {
-          const shiftDate = new Date(startOfMonth(baseMonth));
+          const shiftDate = new Date(startOfMonth(currentDate));
           shiftDate.setDate(shiftDate.getDate() + i);
 
           // Skip weekends for some variety
@@ -115,26 +107,26 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
     });
 
     return result;
-  }, [shifts, providers, clinicTypes, baseMonth]);
+  }, [shifts, providers, clinicTypes, currentDate]);
 
   // Generate the three months to display
   const months = useMemo(() => {
-    return [baseMonth, addMonths(baseMonth, 1), addMonths(baseMonth, 2)];
-  }, [baseMonth]);
+    return [currentDate, addMonths(currentDate, 1), addMonths(currentDate, 2)];
+  }, [currentDate]);
 
   // Navigate to previous three months
   const goToPreviousMonths = () => {
-    setBaseMonth(addMonths(baseMonth, -3));
+    setCurrentDate(addMonths(currentDate, -3));
   };
 
   // Navigate to next three months
   const goToNextMonths = () => {
-    setBaseMonth(addMonths(baseMonth, 3));
+    setCurrentDate(addMonths(currentDate, 3));
   };
 
   // Go to current month
   const goToCurrentMonth = () => {
-    setBaseMonth(startOfMonth(new Date()));
+    setCurrentDate(startOfMonth(new Date()));
   };
 
   // Get shifts for a specific date
@@ -273,7 +265,7 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
                     <div
                       key={`prev-${index}`}
                       className="h-16 p-1 text-gray-400 text-xs border border-gray-100 bg-gray-50"
-                      onClick={() => onDateClick(day)}
+                      onClick={() => onAddShift(day)}
                     >
                       {format(day, "d")}
                     </div>
@@ -283,7 +275,7 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
                   {days.map((day, dayIndex) => {
                     const dayShifts = getShiftsForDate(day);
                     const isSelected =
-                      selectedDate && isSameDay(day, selectedDate);
+                      currentDate && isSameDay(day, currentDate);
 
                     return (
                       <div
@@ -291,7 +283,7 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
                         className={`h-16 p-1 text-xs border ${isToday(day) ? "bg-blue-50 border-blue-200" : "border-gray-100"} 
                           ${isSelected ? "ring-2 ring-blue-500" : ""} 
                           hover:bg-gray-50 cursor-pointer overflow-hidden`}
-                        onClick={() => onDateClick(day)}
+                        onClick={() => onAddShift(day)}
                       >
                         <div className="flex justify-between">
                           <span
@@ -332,7 +324,7 @@ const ThreeMonthView: React.FC<ThreeMonthViewProps> = ({
                       <div
                         key={`next-${index}`}
                         className="h-16 p-1 text-gray-400 text-xs border border-gray-100 bg-gray-50"
-                        onClick={() => onDateClick(day)}
+                        onClick={() => onAddShift(day)}
                       >
                         {format(day, "d")}
                       </div>

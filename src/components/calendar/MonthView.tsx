@@ -49,17 +49,19 @@ interface ClinicType {
   isActive: boolean;
 }
 
-interface MonthViewProps {
-  shifts?: Shift[];
-  providers?: Provider[];
-  clinicTypes?: ClinicType[];
-  onShiftClick?: (shift: Shift) => void;
-  onAddShift?: (date: Date) => void;
+export interface MonthViewProps {
+  date: Date;
+  shifts: Shift[];
+  providers: Provider[];
+  clinicTypes: ClinicType[];
+  onShiftClick: (shift: Shift) => void;
+  onAddShift: (date: Date) => void;
   onNavigate?: (date: Date) => void;
   currentDate?: Date;
 }
 
 const MonthView: React.FC<MonthViewProps> = ({
+  date,
   shifts = [],
   providers = [
     { id: "1", name: "Dr. Smith", color: "#4f46e5", isActive: true },
@@ -76,7 +78,7 @@ const MonthView: React.FC<MonthViewProps> = ({
   onNavigate = () => {},
   currentDate = new Date(),
 }) => {
-  const [viewDate, setViewDate] = useState<Date>(currentDate);
+  const [viewDate, setViewDate] = useState<Date>(date);
   const [calendarNotes, setCalendarNotes] = useState("");
   const [calendarComments, setCalendarComments] = useState([]);
   const [isAdmin, setIsAdmin] = useState(true); // Default to true for now
@@ -406,7 +408,7 @@ const MonthView: React.FC<MonthViewProps> = ({
           isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-400",
           isTodayDate ? "bg-blue-50" : ""
         )}
-        onClick={() => onDateClick(day)}
+        onClick={() => onAddShift(day)}
       >
         <div
           className={cn(
