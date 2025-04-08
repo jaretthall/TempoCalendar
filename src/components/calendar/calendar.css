@@ -1,0 +1,43 @@
+.calendar-cell {
+  min-height: 120px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  position: relative;
+}
+
+.calendar-cell:hover {
+  background-color: #f3f4f6;
+}
+
+.calendar-cell-today {
+  background-color: #f0f9ff;
+}
+
+.calendar-cell-other-month {
+  background-color: #f9fafb;
+  color: #9ca3af;
+}
+
+.calendar-shift {
+  margin-bottom: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-shift-vacation {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.calendar-day-number {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.875rem;
+  color: #6b7280;
+} 
