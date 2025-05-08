@@ -7,7 +7,6 @@ import ShiftDialog from "../shifts/ShiftDialog";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { expandRecurringShift } from "@/utils/date-utils";
-import { useToast } from "@/components/ui/use-toast";
 
 interface CalendarViewProps {
   shifts?: any[];
