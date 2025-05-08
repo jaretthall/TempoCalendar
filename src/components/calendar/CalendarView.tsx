@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CalendarToolbar from "./CalendarToolbar";
 import MonthView from "./MonthView";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabase";
 import ShiftDialog from "../shifts/ShiftDialog";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -121,44 +120,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const handleShiftSave = useCallback(
     async (shiftData: any) => {
       try {
+        const newShift = {
+          id: shiftData.id || `shift-${Date.now()}`,
+          providerId: shiftData.providerId,
+          clinicTypeId: shiftData.clinicTypeId,
+          startDate: shiftData.startDate,
+          endDate: shiftData.endDate,
+          isVacation: shiftData.isVacation,
+          notes: shiftData.notes,
+          isRecurring: shiftData.isRecurring,
+          recurrencePattern: shiftData.recurrencePattern,
+          recurrenceEndDate: shiftData.recurrenceEndDate,
+          seriesId: shiftData.seriesId,
+        };
+
         if (selectedShift) {
-          // Update existing shift
-          const { error } = await supabase
-            .from("shifts")
-            .update({
-              provider_id: shiftData.providerId,
-              clinic_type_id: shiftData.clinicTypeId,
-              start_date: shiftData.startDate.toISOString(),
-              end_date: shiftData.endDate.toISOString(),
-              is_vacation: shiftData.isVacation,
-              notes: shiftData.notes || null,
-            })
-            .eq("id", selectedShift.id);
-
-          if (error) throw error;
-
-          toast({
-            title: "Success",
-            description: "Shift updated successfully",
-          });
+          setAllShifts(allShifts.map(s => s.id === selectedShift.id ? newShift : s));
         } else {
-          // Create new shift
-          const { error } = await supabase.from("shifts").insert({
-            provider_id: shiftData.providerId,
-            clinic_type_id: shiftData.clinicTypeId,
-            start_date: shiftData.startDate.toISOString(),
-            end_date: shiftData.endDate.toISOString(),
-            is_vacation: shiftData.isVacation,
-            notes: shiftData.notes || null,
-          });
-
-          if (error) throw error;
-
-          toast({
-            title: "Success",
-            description: "Shift created successfully",
-          });
+          setAllShifts([...allShifts, newShift]);
         }
+
+        toast({
+          title: "Success",
+          description: selectedShift ? "Shift updated successfully" : "Shift created successfully",
+        });
 
         handleDialogClose();
       } catch (err) {
@@ -170,23 +155,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         });
       }
     },
-    [selectedShift, toast, handleDialogClose],
+    [selectedShift, allShifts, toast],
   );
 
   // Handle shift delete
   const handleShiftDelete = useCallback(
-    async (shiftId: string) => {
+    async (shiftId: string, deleteType: 'single' | 'future' | 'all') => {
       try {
-        const { error } = await supabase
-          .from("shifts")
-          .delete()
-          .eq("id", shiftId);
-
-        if (error) throw error;
+        if (deleteType === 'single') {
+          setAllShifts(allShifts.filter(s => s.id !== shiftId));
+        } else {
+          const shift = allShifts.find(s => s.id === shiftId);
+          if (shift?.seriesId) {
+            setAllShifts(allShifts.filter(s => {
+              if (s.seriesId !== shift.seriesId) return true;
+              if (deleteType === 'future') {
+                return new Date(s.startDate) < new Date(shift.startDate);
+              }
+              return false;
+            }));
+          }
+        }
 
         toast({
           title: "Success",
-          description: "Shift deleted successfully",
+          description: "Shift(s) deleted successfully",
         });
 
         handleDialogClose();
@@ -199,7 +192,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         });
       }
     },
-    [toast, handleDialogClose],
+    [allShifts, toast],
   );
 
   return (
@@ -225,7 +218,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           handleProviderFilterChange(providers);
           handleClinicTypeFilterChange(clinicTypes);
         }}
-        onAddShift={() => onAddShift(currentDate)}
+        onAddShift={() => handleAddShift(currentDate)}
       />
 
       {isLoading ? (
