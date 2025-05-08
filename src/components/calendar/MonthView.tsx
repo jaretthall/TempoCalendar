@@ -97,7 +97,11 @@ const MonthView: React.FC<MonthViewProps> = ({
           !isCurrentMonth && "calendar-cell-other-month",
           isCurrentDay && "calendar-cell-today"
         )}
-        onClick={() => onAddShift(day)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onAddShift(day);
+        }}
       >
         <span className="calendar-day-number">
           {format(day, "d")}
