@@ -61,3 +61,5 @@ const renderDay = (day: Date, index: number) => {
 };
 
 // ... (keep rest of the file)
+
+export default renderDay

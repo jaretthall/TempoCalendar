@@ -79,6 +79,7 @@ interface ShiftDialogProps {
   initialDate?: Date | null;
   providers?: any[];
   clinicTypes?: any[];
+  shifts?: any[];
 }
 
 const ShiftDialog = ({
@@ -92,6 +93,7 @@ const ShiftDialog = ({
   initialDate = null,
   providers: propProviders = [],
   clinicTypes: propClinicTypes = [],
+  shifts = [],
 }: ShiftDialogProps) => {
   const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);
@@ -181,6 +183,23 @@ const ShiftDialog = ({
     fetchData();
   }, [propProviders, propClinicTypes, toast]);
 
+  // Check for double booking
+  const checkDoubleBooking = (
+    shifts: any[],
+    providerId: string,
+    date: Date,
+    currentShiftId?: string
+  ) => {
+    return shifts.some(
+      (shift) =>
+        shift.provider_id === providerId &&
+        format(new Date(shift.start_date), "yyyy-MM-dd") ===
+          format(date, "yyyy-MM-dd") &&
+        shift.id !== currentShiftId &&
+        !shift.is_vacation
+    );
+  };
+
   // Generate recurring shifts based on pattern
   const generateRecurringShifts = async (
     baseShift: any,
@@ -235,6 +254,24 @@ const ShiftDialog = ({
     try {
       setIsLoading(true);
       setFormError(null);
+
+      // Check for double booking
+      const isDoubleBooked = checkDoubleBooking(
+        shifts,
+        data.providerId,
+        data.startDate,
+        shift?.id
+      );
+
+      if (isDoubleBooked && !data.isVacation) {
+        const confirmDouble = window.confirm(
+          "This provider is already scheduled for this day. Do you want to continue?"
+        );
+        if (!confirmDouble) {
+          setIsLoading(false);
+          return;
+        }
+      }
 
       // Validate end date is not before start date for multi-day vacation
       if (data.isVacation && data.endDate < data.startDate) {
