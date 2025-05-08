@@ -12,19 +12,6 @@ let supabaseUrl =
 let supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockKey";
 
-// Log warnings if environment variables are missing
-if (!import.meta.env.VITE_SUPABASE_URL) {
-  console.warn(
-    "Missing VITE_SUPABASE_URL environment variable, using fallback",
-  );
-}
-
-if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn(
-    "Missing VITE_SUPABASE_ANON_KEY environment variable, using fallback",
-  );
-}
-
 // Create a valid Supabase client with real or mock credentials
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 

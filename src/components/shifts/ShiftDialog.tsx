@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { format, addDays } from "date-fns";
 import {
@@ -57,7 +57,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabase";
 import { normalizeDate } from "@/utils/date-utils";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -152,49 +151,13 @@ const ShiftDialog = ({
 
   // Load providers and clinic types
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        let providersData = propProviders;
-        let clinicTypesData = propClinicTypes;
-
-        if (propProviders.length === 0) {
-          const { data, error } = await supabase
-            .from("providers")
-            .select("*")
-            .order("name");
-
-          if (error) throw error;
-          providersData = data || [];
-        }
-
-        if (propClinicTypes.length === 0) {
-          const { data, error } = await supabase
-            .from("clinic_types")
-            .select("*")
-            .order("name");
-
-          if (error) throw error;
-          clinicTypesData = data || [];
-        }
-
-        setProviders(providersData);
-        setClinicTypes(clinicTypesData);
-      } catch (error: any) {
-        console.error("Error fetching data:", error);
-        setFormError(error.message || "Failed to load providers and clinic types");
-        toast({
-          title: "Error",
-          description: "Failed to load data. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [propProviders, propClinicTypes, toast]);
+    if (propProviders.length > 0) {
+      setProviders(propProviders);
+    }
+    if (propClinicTypes.length > 0) {
+      setClinicTypes(propClinicTypes);
+    }
+  }, [propProviders, propClinicTypes]);
 
   const handleDelete = async (deleteType: 'single' | 'future' | 'all') => {
     if (!shift?.id) return;
@@ -203,24 +166,15 @@ const ShiftDialog = ({
       setIsLoading(true);
       setFormError(null);
 
-      if (deleteType === 'single') {
-        await supabase.from("shifts").delete().eq("id", shift.id);
-      } else if (deleteType === 'future') {
-        await supabase
-          .from("shifts")
-          .delete()
-          .eq("seriesId", watchSeriesId)
-          .gte("startDate", shift.startDate);
-      } else if (deleteType === 'all') {
-        await supabase.from("shifts").delete().eq("seriesId", watchSeriesId);
+      if (onDelete) {
+        await onDelete(shift.id, deleteType);
       }
 
       toast({
-        title: "Shift Deleted",
-        description: "The shift(s) have been deleted successfully",
+        title: "Success",
+        description: "Shift(s) deleted successfully",
       });
 
-      if (onDelete) onDelete(shift.id, deleteType);
       if (onOpenChange) onOpenChange(false);
       if (onClose) onClose();
     } catch (error: any) {
@@ -242,25 +196,6 @@ const ShiftDialog = ({
       setIsLoading(true);
       setFormError(null);
 
-      // Check for double booking
-      const isDoubleBooked = shifts.some(
-        existingShift => 
-          existingShift.providerId === data.providerId &&
-          format(new Date(existingShift.startDate), "yyyy-MM-dd") === format(data.startDate, "yyyy-MM-dd") &&
-          existingShift.id !== shift?.id &&
-          !existingShift.isVacation
-      );
-
-      if (isDoubleBooked && !data.isVacation) {
-        const confirmDouble = window.confirm(
-          "This provider is already scheduled for this day. Do you want to continue?"
-        );
-        if (!confirmDouble) {
-          setIsLoading(false);
-          return;
-        }
-      }
-
       const normalizedStartDate = normalizeDate(data.startDate);
       const normalizedEndDate = data.isVacation 
         ? normalizeDate(data.endDate) 
@@ -271,88 +206,14 @@ const ShiftDialog = ({
         : undefined;
 
       const shiftData = {
-        provider_id: data.providerId,
-        clinic_type_id: data.clinicTypeId,
-        start_date: normalizedStartDate.toISOString(),
-        end_date: normalizedEndDate.toISOString(),
-        is_vacation: data.isVacation,
-        notes: data.notes || null,
-        location: data.location || null,
-        is_recurring: data.isRecurring,
-        recurrence_pattern: data.recurrencePattern,
-        series_id: seriesId,
+        ...data,
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
+        seriesId,
       };
 
-      if (isEditing && shift?.id) {
-        // Update options for recurring shifts
-        if (shift.seriesId) {
-          const updateType = await new Promise<'single' | 'future' | 'all'>((resolve) => {
-            const dialog = document.createElement('div');
-            dialog.innerHTML = `
-              <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <div class="bg-white p-6 rounded-lg">
-                  <h3 class="text-lg font-bold mb-4">Update Recurring Shift</h3>
-                  <div class="space-y-4">
-                    <button class="w-full p-2 bg-blue-500 text-white rounded" 
-                            onclick="this.closest('div.fixed').remove(); window.tempResolve('single')">
-                      This occurrence only
-                    </button>
-                    <button class="w-full p-2 bg-blue-500 text-white rounded" 
-                            onclick="this.closest('div.fixed').remove(); window.tempResolve('future')">
-                      This and future occurrences
-                    </button>
-                    <button class="w-full p-2 bg-blue-500 text-white rounded" 
-                            onclick="this.closest('div.fixed').remove(); window.tempResolve('all')">
-                      All occurrences
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `;
-            document.body.appendChild(dialog);
-            (window as any).tempResolve = resolve;
-          });
-
-          if (updateType === 'single') {
-            await supabase.from("shifts").update(shiftData).eq("id", shift.id);
-          } else if (updateType === 'future') {
-            await supabase
-              .from("shifts")
-              .update(shiftData)
-              .eq("series_id", shift.seriesId)
-              .gte("start_date", shift.startDate);
-          } else {
-            await supabase
-              .from("shifts")
-              .update(shiftData)
-              .eq("series_id", shift.seriesId);
-          }
-        } else {
-          await supabase.from("shifts").update(shiftData).eq("id", shift.id);
-        }
-      } else {
-        await supabase.from("shifts").insert(shiftData);
-
-        if (data.isRecurring && data.recurrencePattern) {
-          const recurrenceEnd = data.recurrenceEndDate || addDays(data.startDate, 90);
-          let currentDate = addDays(data.startDate, 1);
-
-          while (currentDate <= recurrenceEnd) {
-            const recurringShift = {
-              ...shiftData,
-              start_date: currentDate.toISOString(),
-              end_date: currentDate.toISOString(),
-            };
-
-            await supabase.from("shifts").insert(recurringShift);
-
-            // Advance to next occurrence
-            const days = data.recurrencePattern === 'daily' ? 1 
-              : data.recurrencePattern === 'weekly' ? 7 
-              : 14;
-            currentDate = addDays(currentDate, days);
-          }
-        }
+      if (onSave) {
+        await onSave(shiftData);
       }
 
       toast({
@@ -360,7 +221,6 @@ const ShiftDialog = ({
         description: "Changes saved successfully",
       });
 
-      if (onSave) onSave(data);
       if (onOpenChange) onOpenChange(false);
       if (onClose) onClose();
     } catch (error: any) {
