@@ -149,7 +149,10 @@ const MonthView: React.FC<MonthViewProps> = ({
     }
 
     return (
-      <div className="calendar-month">
+      <div className={cn(
+        "calendar-month w-full",
+        currentView === "month" && "h-full"
+      )}>
         <div className="calendar-clinic-type">
           <div 
             className="calendar-clinic-type-indicator"
@@ -157,7 +160,7 @@ const MonthView: React.FC<MonthViewProps> = ({
           />
           {clinicType.name}
         </div>
-        <div className="grid grid-cols-7 gap-0">
+        <div className="grid grid-cols-7 gap-0 h-full">
           {dayNames.map((day, index) => (
             <div key={index} className="text-center py-2 font-medium text-sm">
               {day}
@@ -171,9 +174,12 @@ const MonthView: React.FC<MonthViewProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="calendar-container">
+      <div className={cn(
+        "calendar-container h-full",
+        currentView === "month" ? "grid-cols-1" : "grid-cols-2"
+      )}>
         {selectedClinicTypes.map((clinicType: any) => (
-          <Card key={clinicType.id} className="w-full bg-white">
+          <Card key={clinicType.id} className="w-full h-full bg-white">
             <CardHeader className="pb-2">
               <CardTitle className="text-xl">
                 {format(date, "MMMM yyyy")}
