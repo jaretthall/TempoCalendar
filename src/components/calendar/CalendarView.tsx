@@ -251,6 +251,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               clinicTypes={[allClinicTypes[0]]}
               onShiftClick={handleShiftClick}
               onAddShift={handleAddShift}
+              currentView={currentView}
             />
           </TabsContent>
           <TabsContent value="side-by-side" className="mt-0 flex-1 h-full">
@@ -261,6 +262,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               clinicTypes={allClinicTypes.slice(0, 2)}
               onShiftClick={handleShiftClick}
               onAddShift={handleAddShift}
+              currentView={currentView}
             />
           </TabsContent>
         </Tabs>
