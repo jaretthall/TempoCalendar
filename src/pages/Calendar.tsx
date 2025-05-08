@@ -18,7 +18,6 @@ interface Shift {
   endDate: Date;
   isVacation: boolean;
   notes?: string;
-  location?: string;
 }
 
 const Calendar = () => {
@@ -119,12 +118,6 @@ const Calendar = () => {
 
   // Handle importing data
   const handleImportData = (data: any) => {
-    if (data.providers) {
-      // setProviders(data.providers);
-    }
-    if (data.clinicTypes) {
-      // setClinicTypes(data.clinicTypes);
-    }
     if (data.shifts) {
       setShifts(data.shifts);
     }
