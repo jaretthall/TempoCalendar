@@ -33,7 +33,7 @@ const Calendar = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Provider data with state management
-  const [providers, setProviders] = useState<any[]>([
+  const [providers] = useState<any[]>([
     { id: "1", name: "Bibiana Patrick", color: "#8BC34A", isActive: true },
     { id: "2", name: "Joy Ferro", color: "#FF9800", isActive: true },
     { id: "3", name: "Julia Friederich", color: "#E91E63", isActive: true },
@@ -49,7 +49,7 @@ const Calendar = () => {
   ]);
 
   // Clinic type data with state management
-  const [clinicTypes, setClinicTypes] = useState<any[]>([
+  const [clinicTypes] = useState<any[]>([
     { id: "1", name: "Clinica Medicos", color: "#4CAF50", isActive: true },
     { id: "2", name: "Urgent Care", color: "#FF9800", isActive: true },
   ]);
@@ -85,13 +85,45 @@ const Calendar = () => {
     setShiftDialogOpen(true);
   };
 
+  // Handle saving a shift
+  const handleSaveShift = (shiftData: any) => {
+    const newShift = {
+      id: shiftData.id || `shift-${Date.now()}`,
+      ...shiftData,
+    };
+
+    if (isEditing && selectedShift) {
+      setShifts(shifts.map(s => s.id === selectedShift.id ? newShift : s));
+    } else {
+      setShifts([...shifts, newShift]);
+    }
+  };
+
+  // Handle deleting a shift
+  const handleDeleteShift = (shiftId: string, deleteType: 'single' | 'future' | 'all') => {
+    if (deleteType === 'single') {
+      setShifts(shifts.filter(s => s.id !== shiftId));
+    } else if (deleteType === 'future' || deleteType === 'all') {
+      const shift = shifts.find(s => s.id === shiftId);
+      if (shift?.seriesId) {
+        setShifts(shifts.filter(s => {
+          if (s.seriesId !== shift.seriesId) return true;
+          if (deleteType === 'future') {
+            return new Date(s.startDate) < new Date(shift.startDate);
+          }
+          return false;
+        }));
+      }
+    }
+  };
+
   // Handle importing data
   const handleImportData = (data: any) => {
     if (data.providers) {
-      setProviders(data.providers);
+      // setProviders(data.providers);
     }
     if (data.clinicTypes) {
-      setClinicTypes(data.clinicTypes);
+      // setClinicTypes(data.clinicTypes);
     }
     if (data.shifts) {
       setShifts(data.shifts);
@@ -141,9 +173,14 @@ const Calendar = () => {
       <ShiftDialog
         open={shiftDialogOpen}
         onOpenChange={setShiftDialogOpen}
-        onSave={handleImportData}
+        onSave={handleSaveShift}
+        onDelete={handleDeleteShift}
         shift={selectedShift}
         isEditing={isEditing}
+        initialDate={selectedDate}
+        providers={providers}
+        clinicTypes={clinicTypes}
+        shifts={shifts}
       />
 
       <ImportDataDialog

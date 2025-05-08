@@ -65,7 +65,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const shiftFormSchema = z.object({
   providerId: z.string().min(1, "Provider is required"),
   clinicTypeId: z.string().min(1, "Clinic type is required"),
-  startDate: z.date({ required_error: "Date is required" }),
+  startDate: z.date({ required_error: "Start date is required" }),
   endDate: z.date({ required_error: "End date is required" }),
   isVacation: z.boolean().default(false),
   isRecurring: z.boolean().default(false),
@@ -344,9 +344,19 @@ const ShiftDialog = ({
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
+                          mode={watchIsVacation ? "range" : "single"}
+                          selected={watchIsVacation ? {
+                            from: watchStartDate,
+                            to: watchEndDate
+                          } : field.value}
+                          onSelect={(value) => {
+                            if (value instanceof Date) {
+                              field.onChange(value);
+                            } else if (value?.from) {
+                              field.onChange(value.from);
+                              form.setValue("endDate", value.to || value.from);
+                            }
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -376,51 +386,6 @@ const ShiftDialog = ({
                   </FormItem>
                 )}
               />
-
-              {watchIsVacation && (
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>End Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick an end date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < watchStartDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormDescription>
-                        For multi-day vacations
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
 
               {!isEditing && (
                 <FormField
