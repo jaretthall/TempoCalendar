@@ -183,4 +183,44 @@ export function getMonthName(date: Date): string {
  */
 export function getYear(date: Date): number {
   return parseInt(format(date, "yyyy"));
-} 
+}
+
+/**
+ * Check if a provider is double-booked on a given date
+ */
+export function checkDoubleBooking(shifts: any[], providerId: string, date: Date, excludeShiftId?: string): boolean {
+  const dayShifts = shifts.filter(shift => 
+    shift.providerId === providerId &&
+    doesShiftOccurOnDate(shift, date) &&
+    shift.id !== excludeShiftId &&
+    !shift.isVacation
+  );
+  
+  return dayShifts.length > 0;
+}
+
+/**
+ * Get provider initials from name
+ */
+export function getProviderInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase();
+}
+
+/**
+ * Get vacation providers for a date
+ */
+export function getVacationProviders(shifts: any[], providers: any[], date: Date): string[] {
+  const vacationShifts = shifts.filter(shift => 
+    shift.isVacation && 
+    doesShiftOccurOnDate(shift, date)
+  );
+  
+  return vacationShifts.map(shift => {
+    const provider = providers.find(p => p.id === shift.providerId);
+    return provider ? getProviderInitials(provider.name) : '';
+  }).filter(Boolean);
+}
