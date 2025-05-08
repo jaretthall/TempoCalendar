@@ -77,10 +77,9 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
         .from("calendar_notes")
         .select("notes")
         .eq("date", formattedDate)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") {
-        // PGRST116 is "not found"
+      if (error) {
         console.error("Error fetching notes:", error);
         toast({
           title: "Error",
@@ -89,12 +88,8 @@ const CalendarNotesDialog: React.FC<CalendarNotesDialogProps> = ({
         });
       }
 
-      if (data) {
-        setEditedNotes(data.notes || "");
-      } else {
-        // Reset to empty or default notes if no data found
-        setEditedNotes("");
-      }
+      // Set notes if data exists, otherwise set empty string
+      setEditedNotes(data?.notes || "");
     } catch (error) {
       console.error("Error in fetchNotes:", error);
       toast({

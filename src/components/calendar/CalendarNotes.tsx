@@ -61,15 +61,14 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
     try {
       setIsLoading(true);
 
-      // Fetch notes
+      // Fetch notes using maybeSingle() to handle no results
       const { data: notesData, error: notesError } = await supabase
         .from("calendar_notes")
         .select("*")
         .eq("date", formattedDate)
-        .single();
+        .maybeSingle();
 
-      if (notesError && notesError.code !== "PGRST116") {
-        // PGRST116 is "not found"
+      if (notesError) {
         console.error("Error fetching notes:", notesError);
         toast({
           title: "Error",
@@ -78,9 +77,8 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
         });
       }
 
-      if (notesData) {
-        setEditedNotes(notesData.notes || "");
-      }
+      // Set notes if data exists, otherwise set empty string
+      setEditedNotes(notesData?.notes || "");
 
       // Fetch comments
       const { data: commentsData, error: commentsError } = await supabase
