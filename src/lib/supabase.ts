@@ -2,8 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { mockData } from "./mock-data";
 
-// Check if we should use mock mode
-const useMockData = import.meta.env.VITE_USE_MOCK_DATA === "true";
+// Force mock mode in WebContainer environment
+const useMockData = true;
 console.log("Using mock data:", useMockData);
 
 // Get environment variables with fallbacks to prevent runtime errors
