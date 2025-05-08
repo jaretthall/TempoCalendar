@@ -27,6 +27,7 @@ interface HeaderProps {
   userRole?: "admin" | "user" | "public";
   onToggleSidebar?: () => void;
   onLogout?: () => void;
+  children?: React.ReactNode;
 }
 
 const Header = ({
@@ -34,6 +35,7 @@ const Header = ({
   userRole = "admin",
   onToggleSidebar = () => {},
   onLogout = () => {},
+  children,
 }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background flex h-16 items-center px-4 md:px-6">
@@ -57,6 +59,8 @@ const Header = ({
         </div>
 
         <div className="flex items-center gap-4">
+          {children}
+          
           <Button variant="ghost" size="icon" asChild>
             <Link to="/" title="Back to Dashboard">
               <LayoutDashboard className="h-5 w-5" />
