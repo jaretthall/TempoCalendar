@@ -9,14 +9,12 @@ import {
   getDay,
 } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { 
@@ -98,11 +96,7 @@ const MonthView: React.FC<MonthViewProps> = ({
           !isCurrentMonth && "calendar-cell-other-month",
           isCurrentDay && "calendar-cell-today"
         )}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onAddShift(day);
-        }}
+        onClick={() => onAddShift(day)}
       >
         <span className="calendar-day-number">
           {format(day, "d")}

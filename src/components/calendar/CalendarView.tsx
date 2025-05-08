@@ -7,6 +7,7 @@ import ShiftDialog from "../shifts/ShiftDialog";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { expandRecurringShift } from "@/utils/date-utils";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CalendarViewProps {
   shifts?: any[];
@@ -42,6 +43,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [selectedShift, setSelectedShift] = useState<any | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Filter shifts based on selected providers and clinic types
   const filteredShifts = useMemo(() => {
@@ -91,27 +93,29 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   // Handle shift click
   const handleShiftClick = useCallback(
     (shift: any) => {
+      if (isDialogOpen) return;
       setSelectedShift(shift);
-      setShowShiftDialog(true);
+      setIsDialogOpen(true);
       onShiftClick(shift);
     },
-    [onShiftClick],
+    [onShiftClick, isDialogOpen],
   );
 
   // Handle add shift
   const handleAddShift = useCallback(
     (date: Date) => {
+      if (isDialogOpen) return;
       setSelectedDate(date);
       setSelectedShift(null);
-      setShowShiftDialog(true);
+      setIsDialogOpen(true);
       onAddShift(date);
     },
-    [onAddShift],
+    [onAddShift, isDialogOpen],
   );
 
   // Handle dialog close
   const handleDialogClose = useCallback(() => {
-    setShowShiftDialog(false);
+    setIsDialogOpen(false);
     setSelectedShift(null);
     setSelectedDate(null);
   }, []);
@@ -261,8 +265,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
       {showShiftDialog && (
         <ShiftDialog
-          open={showShiftDialog}
-          onOpenChange={setShowShiftDialog}
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
           shift={selectedShift}
           initialDate={selectedDate}
           providers={allProviders}
