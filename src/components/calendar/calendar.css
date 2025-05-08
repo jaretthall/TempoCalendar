@@ -70,3 +70,29 @@
   margin-top: 20px;
   margin-right: 20px;
 }
+
+.calendar-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.calendar-month {
+  flex: 1;
+}
+
+.calendar-clinic-type {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.calendar-clinic-type-indicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+}
