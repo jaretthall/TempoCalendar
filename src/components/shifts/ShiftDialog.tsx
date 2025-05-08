@@ -72,7 +72,6 @@ const shiftFormSchema = z.object({
   recurrencePattern: z.enum(["daily", "weekly", "biweekly"]).optional(),
   recurrenceEndDate: z.date().optional().nullable(),
   notes: z.string().optional(),
-  location: z.string().optional(),
   seriesId: z.string().optional(),
 });
 
@@ -124,7 +123,6 @@ const ShiftDialog = ({
     recurrencePattern: shift?.recurrencePattern || "weekly",
     recurrenceEndDate: shift?.recurrenceEndDate || null,
     notes: shift?.notes || "",
-    location: shift?.location || "",
     seriesId: shift?.seriesId || undefined,
   };
 
@@ -177,12 +175,12 @@ const ShiftDialog = ({
 
       if (onOpenChange) onOpenChange(false);
       if (onClose) onClose();
-    } catch (error: any) {
-      console.error("Error deleting shift:", error);
-      setFormError(error.message || "An error occurred while deleting");
+    } catch (err) {
+      console.error("Error deleting shift:", err);
+      setFormError(err instanceof Error ? err.message : "An error occurred while deleting");
       toast({
         title: "Error",
-        description: error.message || "Failed to delete shift(s)",
+        description: "Failed to delete shift(s)",
         variant: "destructive",
       });
     } finally {
@@ -223,12 +221,12 @@ const ShiftDialog = ({
 
       if (onOpenChange) onOpenChange(false);
       if (onClose) onClose();
-    } catch (error: any) {
-      console.error("Error saving shift:", error);
-      setFormError(error.message || "An error occurred while saving");
+    } catch (err) {
+      console.error("Error saving shift:", err);
+      setFormError(err instanceof Error ? err.message : "An error occurred while saving");
       toast({
         title: "Error",
-        description: error.message || "Failed to save changes",
+        description: "Failed to save changes",
         variant: "destructive",
       });
     } finally {
@@ -486,20 +484,6 @@ const ShiftDialog = ({
               )}
 
               <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter location" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <FormField
                   control={form.control}
                   name="notes"
