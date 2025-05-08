@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
-  FileText,
   Filter,
 } from "lucide-react";
 
@@ -49,7 +48,6 @@ const Sidebar = ({ collapsed = false, onToggle = () => {} }: SidebarProps) => {
     { path: "/calendar", icon: <Calendar size={20} />, label: "Calendar" },
     { path: "/providers", icon: <Users size={20} />, label: "Providers" },
     { path: "/clinics", icon: <Building2 size={20} />, label: "Clinic Types" },
-    { path: "/notes", icon: <FileText size={20} />, label: "Notes" },
     { path: "/settings", icon: <Settings size={20} />, label: "Settings" },
   ];
 

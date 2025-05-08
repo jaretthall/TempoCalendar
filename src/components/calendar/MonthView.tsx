@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   format,
   startOfMonth,
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/tooltip";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import CalendarNotes from "./CalendarNotes";
 import { supabase } from "@/lib/supabase";
 import { 
   formatDateForDisplay, 
@@ -49,13 +48,6 @@ const MonthView: React.FC<MonthViewProps> = ({
   currentView = "month",
 }) => {
   const [selectedClinicTypes] = useState(clinicTypes.slice(0, 2));
-  const [calendarNotes, setCalendarNotes] = useState("");
-  const [calendarComments, setCalendarComments] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(true);
-  const [currentUser] = useState({
-    id: "user1",
-    name: "Guest User",
-  });
 
   // Generate days for the current month view
   const monthStart = startOfMonth(date);
@@ -192,18 +184,6 @@ const MonthView: React.FC<MonthViewProps> = ({
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      <div className="mt-4">
-        <CalendarNotes
-          date={date}
-          notes={calendarNotes}
-          comments={calendarComments}
-          isAdmin={isAdmin}
-          currentUser={currentUser}
-          onSaveNotes={setCalendarNotes}
-          onAddComment={() => {}}
-        />
       </div>
     </div>
   );
