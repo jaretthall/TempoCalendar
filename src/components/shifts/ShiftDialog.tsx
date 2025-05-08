@@ -45,8 +45,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
 import { normalizeDate } from "@/utils/date-utils";
 import { Separator } from "@/components/ui/separator";
@@ -63,16 +72,16 @@ const shiftFormSchema = z.object({
   recurrenceEndDate: z.date().optional().nullable(),
   notes: z.string().optional(),
   location: z.string().optional(),
+  seriesId: z.string().optional(),
 });
 
-// Define the form values type
 type ShiftFormValues = z.infer<typeof shiftFormSchema>;
 
 interface ShiftDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSave?: (data: any) => void;
-  onDelete?: (shiftId: string) => void;
+  onDelete?: (shiftId: string, deleteType?: 'single' | 'future' | 'all') => void;
   onClose?: () => void;
   shift?: any;
   isEditing?: boolean;
@@ -96,6 +105,7 @@ const ShiftDialog = ({
   shifts = [],
 }: ShiftDialogProps) => {
   const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);
   const [clinicTypes, setClinicTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,26 +124,24 @@ const ShiftDialog = ({
     recurrenceEndDate: shift?.recurrenceEndDate || null,
     notes: shift?.notes || "",
     location: shift?.location || "",
+    seriesId: shift?.seriesId || undefined,
   };
 
-  // Initialize form with validation
   const form = useForm<ShiftFormValues>({
     resolver: zodResolver(shiftFormSchema),
     defaultValues,
   });
 
-  // Watch for changes to isRecurring field
   const watchIsRecurring = form.watch("isRecurring");
   const watchStartDate = form.watch("startDate");
   const watchEndDate = form.watch("endDate");
   const watchIsVacation = form.watch("isVacation");
+  const watchSeriesId = form.watch("seriesId");
 
-  // Update recurrence options visibility when isRecurring changes
   useEffect(() => {
     setShowRecurrenceOptions(watchIsRecurring);
   }, [watchIsRecurring]);
 
-  // Sync end date with start date when start date changes (for single day shifts)
   useEffect(() => {
     if (watchStartDate && !watchIsVacation) {
       form.setValue("endDate", watchStartDate);
@@ -144,11 +152,9 @@ const ShiftDialog = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Use props data if available
         if (propProviders.length > 0) {
           setProviders(propProviders);
         } else {
-          // Fetch from Supabase
           const { data: providersData, error: providersError } = await supabase
             .from("providers")
             .select("*")
@@ -158,23 +164,22 @@ const ShiftDialog = ({
           setProviders(providersData || []);
         }
 
-        // Use props data for clinic types if available
         if (propClinicTypes.length > 0) {
           setClinicTypes(propClinicTypes);
         } else {
-          // Fetch from Supabase
-          const { data: clinicTypesData, error: clinicTypesError } =
-            await supabase.from("clinic_types").select("*").order("name");
+          const { data: clinicTypesData, error: clinicTypesError } = await supabase
+            .from("clinic_types")
+            .select("*")
+            .order("name");
 
           if (clinicTypesError) throw clinicTypesError;
           setClinicTypes(clinicTypesData || []);
         }
       } catch (error) {
-        console.error("Error fetching providers and clinic types:", error);
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
-          description:
-            "Failed to load providers and clinic types. Please try again.",
+          description: "Failed to load data. Please try again.",
           variant: "destructive",
         });
       }
@@ -183,84 +188,59 @@ const ShiftDialog = ({
     fetchData();
   }, [propProviders, propClinicTypes, toast]);
 
-  // Check for double booking
-  const checkDoubleBooking = (
-    shifts: any[],
-    providerId: string,
-    date: Date,
-    currentShiftId?: string
-  ) => {
-    return shifts.some(
-      (shift) =>
-        shift.provider_id === providerId &&
-        format(new Date(shift.start_date), "yyyy-MM-dd") ===
-          format(date, "yyyy-MM-dd") &&
-        shift.id !== currentShiftId &&
-        !shift.is_vacation
-    );
-  };
+  const handleDelete = async (deleteType: 'single' | 'future' | 'all') => {
+    if (!shift?.id) return;
 
-  // Generate recurring shifts based on pattern
-  const generateRecurringShifts = async (
-    baseShift: any,
-    pattern: string,
-    endDate?: Date,
-  ) => {
     try {
-      const shifts = [];
-      let currentDate = new Date(baseShift.start_date);
-      const endRecurrence = endDate || addDays(currentDate, 90); // Default to 90 days if no end date
+      setIsLoading(true);
+      setFormError(null);
 
-      while (currentDate <= endRecurrence) {
-        // Skip the first occurrence as it's already created
-        if (shifts.length > 0) {
-          const shiftData = {
-            provider_id: baseShift.provider_id,
-            clinic_type_id: baseShift.clinic_type_id,
-            start_date: normalizeDate(currentDate).toISOString(),
-            end_date: normalizeDate(currentDate).toISOString(),
-            is_vacation: baseShift.is_vacation,
-            notes: baseShift.notes,
-            location: baseShift.location,
-          };
-          shifts.push(shiftData);
-        }
-
-        // Advance to next occurrence based on pattern
-        if (pattern === "daily") {
-          currentDate = addDays(currentDate, 1);
-        } else if (pattern === "weekly") {
-          currentDate = addDays(currentDate, 7);
-        } else if (pattern === "biweekly") {
-          currentDate = addDays(currentDate, 14);
-        }
+      if (deleteType === 'single') {
+        await supabase.from("shifts").delete().eq("id", shift.id);
+      } else if (deleteType === 'future') {
+        await supabase
+          .from("shifts")
+          .delete()
+          .eq("seriesId", watchSeriesId)
+          .gte("startDate", shift.startDate);
+      } else if (deleteType === 'all') {
+        await supabase.from("shifts").delete().eq("seriesId", watchSeriesId);
       }
 
-      // Insert all recurring shifts in a batch
-      if (shifts.length > 0) {
-        const { error } = await supabase.from("shifts").insert(shifts);
-        if (error) throw error;
-      }
+      toast({
+        title: "Shift Deleted",
+        description: "The shift(s) have been deleted successfully",
+      });
 
-      return shifts.length;
-    } catch (error) {
-      console.error("Error generating recurring shifts:", error);
-      throw error;
+      if (onDelete) onDelete(shift.id, deleteType);
+      if (onOpenChange) onOpenChange(false);
+      if (onClose) onClose();
+    } catch (error: any) {
+      console.error("Error deleting shift:", error);
+      setFormError(error.message || "An error occurred while deleting");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete shift(s)",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setShowDeleteDialog(false);
     }
   };
 
-  // Form submission handler
   const onSubmit = async (data: ShiftFormValues) => {
     try {
       setIsLoading(true);
       setFormError(null);
 
       // Check for double booking
-      const isDoubleBooked = checkDoubleBooking(
-        shifts,
-        data.providerId,
-        data.startDate,
-        shift?.id
+      const isDoubleBooked = shifts.some(
+        existingShift => 
+          existingShift.providerId === data.providerId &&
+          format(new Date(existingShift.startDate), "yyyy-MM-dd") === format(data.startDate, "yyyy-MM-dd") &&
+          existingShift.id !== shift?.id &&
+          !existingShift.isVacation
       );
 
       if (isDoubleBooked && !data.isVacation) {
@@ -273,19 +253,15 @@ const ShiftDialog = ({
         }
       }
 
-      // Validate end date is not before start date for multi-day vacation
-      if (data.isVacation && data.endDate < data.startDate) {
-        setFormError("End date cannot be before start date");
-        return;
-      }
-
-      // For non-vacation shifts, always set end date equal to start date (single day shifts)
       const normalizedStartDate = normalizeDate(data.startDate);
       const normalizedEndDate = data.isVacation 
         ? normalizeDate(data.endDate) 
         : normalizeDate(data.startDate);
 
-      // Prepare shift data for Supabase
+      const seriesId = data.isRecurring 
+        ? (shift?.seriesId || `series-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`)
+        : undefined;
+
       const shiftData = {
         provider_id: data.providerId,
         clinic_type_id: data.clinicTypeId,
@@ -294,108 +270,97 @@ const ShiftDialog = ({
         is_vacation: data.isVacation,
         notes: data.notes || null,
         location: data.location || null,
+        is_recurring: data.isRecurring,
+        recurrence_pattern: data.recurrencePattern,
+        series_id: seriesId,
       };
 
-      let result;
-      let shiftId;
-
-      // Update or insert shift
       if (isEditing && shift?.id) {
-        result = await supabase
-          .from("shifts")
-          .update(shiftData)
-          .eq("id", shift.id);
-        shiftId = shift.id;
+        // Update options for recurring shifts
+        if (shift.seriesId) {
+          const updateType = await new Promise<'single' | 'future' | 'all'>((resolve) => {
+            const dialog = document.createElement('div');
+            dialog.innerHTML = `
+              <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="bg-white p-6 rounded-lg">
+                  <h3 class="text-lg font-bold mb-4">Update Recurring Shift</h3>
+                  <div class="space-y-4">
+                    <button class="w-full p-2 bg-blue-500 text-white rounded" 
+                            onclick="this.closest('div.fixed').remove(); window.tempResolve('single')">
+                      This occurrence only
+                    </button>
+                    <button class="w-full p-2 bg-blue-500 text-white rounded" 
+                            onclick="this.closest('div.fixed').remove(); window.tempResolve('future')">
+                      This and future occurrences
+                    </button>
+                    <button class="w-full p-2 bg-blue-500 text-white rounded" 
+                            onclick="this.closest('div.fixed').remove(); window.tempResolve('all')">
+                      All occurrences
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+            document.body.appendChild(dialog);
+            (window as any).tempResolve = resolve;
+          });
+
+          if (updateType === 'single') {
+            await supabase.from("shifts").update(shiftData).eq("id", shift.id);
+          } else if (updateType === 'future') {
+            await supabase
+              .from("shifts")
+              .update(shiftData)
+              .eq("series_id", shift.seriesId)
+              .gte("start_date", shift.startDate);
+          } else {
+            await supabase
+              .from("shifts")
+              .update(shiftData)
+              .eq("series_id", shift.seriesId);
+          }
+        } else {
+          await supabase.from("shifts").update(shiftData).eq("id", shift.id);
+        }
       } else {
-        result = await supabase.from("shifts").insert(shiftData).select();
-        shiftId = result.data?.[0]?.id;
+        await supabase.from("shifts").insert(shiftData);
+
+        if (data.isRecurring && data.recurrencePattern) {
+          const recurrenceEnd = data.recurrenceEndDate || addDays(data.startDate, 90);
+          let currentDate = addDays(data.startDate, 1);
+
+          while (currentDate <= recurrenceEnd) {
+            const recurringShift = {
+              ...shiftData,
+              start_date: currentDate.toISOString(),
+              end_date: currentDate.toISOString(),
+            };
+
+            await supabase.from("shifts").insert(recurringShift);
+
+            // Advance to next occurrence
+            const days = data.recurrencePattern === 'daily' ? 1 
+              : data.recurrencePattern === 'weekly' ? 7 
+              : 14;
+            currentDate = addDays(currentDate, days);
+          }
+        }
       }
 
-      if (result.error) {
-        throw result.error;
-      }
-
-      // Handle recurring shifts
-      let recurringCount = 0;
-      if (data.isRecurring && !isEditing && data.recurrencePattern) {
-        recurringCount = await generateRecurringShifts(
-          { ...shiftData, id: shiftId },
-          data.recurrencePattern,
-          data.recurrenceEndDate || undefined,
-        );
-      }
-
-      // Call onSave callback with the form data
-      if (onSave) {
-        onSave({
-          ...data,
-          id: shiftId,
-          startDate: normalizedStartDate,
-          endDate: normalizedEndDate,
-        });
-      }
-
-      // Show success message
       toast({
         title: isEditing ? "Shift Updated" : "Shift Created",
-        description: isEditing
-          ? "The shift has been updated successfully"
-          : `${
-              data.isRecurring
-                ? `Created ${recurringCount + 1} shifts based on recurrence pattern`
-                : "The shift has been created successfully"
-            }`,
+        description: "Changes saved successfully",
       });
 
-      // Close the dialog
+      if (onSave) onSave(data);
       if (onOpenChange) onOpenChange(false);
       if (onClose) onClose();
     } catch (error: any) {
       console.error("Error saving shift:", error);
-      setFormError(
-        error.message || "An error occurred while saving the shift",
-      );
+      setFormError(error.message || "An error occurred while saving");
       toast({
         title: "Error",
-        description: error.message || "Failed to save shift",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Delete the shift
-  const handleDelete = async () => {
-    if (!shift?.id) return;
-
-    try {
-      setIsLoading(true);
-      setFormError(null);
-
-      const { error } = await supabase
-        .from("shifts")
-        .delete()
-        .eq("id", shift.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Shift Deleted",
-        description: "The shift has been deleted successfully",
-      });
-
-      if (onDelete) onDelete(shift.id);
-      if (onOpenChange) onOpenChange(false);
-      if (onClose) onClose();
-    } catch (error: any) {
-      console.error("Error deleting shift:", error);
-      setFormError(
-        error.message || "An error occurred while deleting the shift",
-      );
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete shift",
+        description: error.message || "Failed to save changes",
         variant: "destructive",
       });
     } finally {
@@ -404,171 +369,92 @@ const ShiftDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Edit Shift" : "Create New Shift"}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? "Edit Shift" : "Create New Shift"}
+            </DialogTitle>
+          </DialogHeader>
 
-        {formError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{formError}</AlertDescription>
-          </Alert>
-        )}
+          {formError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Provider selection */}
-            <FormField
-              control={form.control}
-              name="providerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Provider</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select provider" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {providers.map((provider) => (
-                        <SelectItem key={provider.id} value={provider.id}>
-                          <div className="flex items-center">
-                            <div
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{
-                                backgroundColor: provider.color || "#888888",
-                              }}
-                            />
-                            {provider.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Clinic Type */}
-            <FormField
-              control={form.control}
-              name="clinicTypeId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Clinic Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select clinic type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {clinicTypes.map((clinicType) => (
-                        <SelectItem
-                          key={clinicType.id}
-                          value={clinicType.id}
-                        >
-                          <div className="flex items-center">
-                            <div
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{
-                                backgroundColor:
-                                  clinicType.color || "#888888",
-                              }}
-                            />
-                            {clinicType.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Start Date */}
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground",
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Vacation toggle */}
-            <FormField
-              control={form.control}
-              name="isVacation"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Vacation</FormLabel>
-                    <FormDescription>
-                      Mark this as a vacation day instead of a shift
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* End Date - Only shown for vacations */}
-            {watchIsVacation && (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="endDate"
+                name="providerId"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>End Date</FormLabel>
+                  <FormItem>
+                    <FormLabel>Provider</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {providers.map((provider) => (
+                          <SelectItem key={provider.id} value={provider.id}>
+                            <div className="flex items-center">
+                              <div
+                                className="w-3 h-3 rounded-full mr-2"
+                                style={{ backgroundColor: provider.color }}
+                              />
+                              {provider.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="clinicTypeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Clinic Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select clinic type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {clinicTypes.map((clinicType) => (
+                          <SelectItem key={clinicType.id} value={clinicType.id}>
+                            <div className="flex items-center">
+                              <div
+                                className="w-3 h-3 rounded-full mr-2"
+                                style={{ backgroundColor: clinicType.color }}
+                              />
+                              {clinicType.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -576,13 +462,13 @@ const ShiftDialog = ({
                             variant={"outline"}
                             className={cn(
                               "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground",
+                              !field.value && "text-muted-foreground"
                             )}
                           >
                             {field.value ? (
                               format(field.value, "PPP")
                             ) : (
-                              <span>Pick an end date</span>
+                              <span>Pick a date</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -593,31 +479,10 @@ const ShiftDialog = ({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < watchStartDate}
                           initialFocus
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormDescription>
-                      For multi-day vacations, select the last day
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Optional fields */}
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter location" {...field} />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -625,83 +490,32 @@ const ShiftDialog = ({
 
               <FormField
                 control={form.control}
-                name="notes"
+                name="isVacation"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes (Optional)</FormLabel>
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Vacation</FormLabel>
+                      <FormDescription>
+                        Mark this as a vacation day
+                      </FormDescription>
+                    </div>
                     <FormControl>
-                      <Input placeholder="Add notes" {...field} />
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Recurring shift toggle */}
-            <FormField
-              control={form.control}
-              name="isRecurring"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between space-x-2 space-y-0 rounded-md border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel>Recurring Shift</FormLabel>
-                    <FormDescription>
-                      Set up a recurring pattern for this shift
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={isEditing} // Disable for editing existing shifts
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {showRecurrenceOptions && (
-              <div className="space-y-4 rounded-md border p-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">Recurrence Settings</h4>
-                  <Repeat className="h-4 w-4 text-gray-400" />
-                </div>
-
-                {/* Recurrence Pattern */}
+              {watchIsVacation && (
                 <FormField
                   control={form.control}
-                  name="recurrencePattern"
+                  name="endDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pattern</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select pattern" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="biweekly">Biweekly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Recurrence End Date */}
-                <FormField
-                  control={form.control}
-                  name="recurrenceEndDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>End Recurrence</FormLabel>
+                      <FormLabel>End Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -709,28 +523,116 @@ const ShiftDialog = ({
                               variant={"outline"}
                               className={cn(
                                 "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground",
+                                !field.value && "text-muted-foreground"
                               )}
                             >
                               {field.value ? (
                                 format(field.value, "PPP")
                               ) : (
-                                <span>No end date</span>
+                                <span>Pick an end date</span>
                               )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <div className="p-2">
-                            <Button
-                              variant="ghost"
-                              onClick={() => field.onChange(null)}
-                              className="w-full justify-start text-left font-normal mb-2"
-                            >
-                              No end date
-                            </Button>
-                            <Separator className="my-2" />
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < watchStartDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription>
+                        For multi-day vacations
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {!isEditing && (
+                <FormField
+                  control={form.control}
+                  name="isRecurring"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">
+                          Recurring Shift
+                        </FormLabel>
+                        <FormDescription>
+                          Set up a recurring pattern
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {showRecurrenceOptions && (
+                <div className="space-y-4 rounded-md border p-4">
+                  <FormField
+                    control={form.control}
+                    name="recurrencePattern"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recurrence Pattern</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select pattern" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="biweekly">Biweekly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="recurrenceEndDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Recurrence</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>No end date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
                               selected={field.value || undefined}
@@ -738,49 +640,122 @@ const ShiftDialog = ({
                               disabled={(date) => date <= watchStartDate}
                               initialFocus
                             />
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                      <FormDescription>
-                        If not set, will default to 90 days
-                      </FormDescription>
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          Defaults to 90 days if not set
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter location" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Add notes" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-            )}
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              {isEditing && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isLoading}
-                >
-                  Delete
-                </Button>
-              )}
-              <div className="flex gap-2 ml-auto">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" onClick={onClose}>
-                    Cancel
+              <DialogFooter className="gap-2 sm:gap-0">
+                {isEditing && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={isLoading}
+                  >
+                    Delete
                   </Button>
-                </DialogClose>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading
-                    ? "Saving..."
-                    : isEditing
-                    ? "Update"
-                    : "Create"}
+                )}
+                <div className="flex gap-2 ml-auto">
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" onClick={onClose}>
+                      Cancel
+                    </Button>
+                  </DialogClose>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? "Saving..." : isEditing ? "Update" : "Create"}
+                  </Button>
+                </div>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Shift</AlertDialogTitle>
+            <AlertDialogDescription>
+              {shift?.seriesId ? (
+                "How would you like to delete this recurring shift?"
+              ) : (
+                "Are you sure you want to delete this shift?"
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {shift?.seriesId ? (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDelete('single')}
+                >
+                  This occurrence
                 </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDelete('future')}
+                >
+                  This and future
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDelete('all')}
+                >
+                  All occurrences
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="destructive"
+                onClick={() => handleDelete('single')}
+              >
+                Delete
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
