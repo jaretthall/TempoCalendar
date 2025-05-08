@@ -34,28 +34,87 @@ const MOCK_DATA = mockData;
 // Only override Supabase methods if we're using mock data
 if (useMockData) {
   const mockFrom = (table: keyof Database['public']['Tables']) => {
+    const getMockData = () => {
+      return MOCK_DATA[table] || [];
+    };
+
+    const buildQuery = (data: any[]) => {
+      let filteredData = [...data];
+      let queryChain = {
+        data: filteredData,
+        filters: [] as any[],
+        orderBy: null as any,
+
+        eq: function(column: string, value: any) {
+          this.filters.push((item: any) => item[column] === value);
+          return this;
+        },
+
+        like: function(column: string, pattern: string) {
+          const regex = new RegExp(pattern.replace(/%/g, '.*'));
+          this.filters.push((item: any) => regex.test(item[column]));
+          return this;
+        },
+
+        order: function(column: string, { ascending = true } = {}) {
+          this.orderBy = { column, ascending };
+          return this;
+        },
+
+        single: function() {
+          const result = this.execute();
+          return {
+            data: result.data?.[0] || null,
+            error: null
+          };
+        },
+
+        execute: function() {
+          let result = this.data;
+
+          // Apply all filters
+          for (const filter of this.filters) {
+            result = result.filter(filter);
+          }
+
+          // Apply ordering if specified
+          if (this.orderBy) {
+            result.sort((a: any, b: any) => {
+              const aVal = a[this.orderBy.column];
+              const bVal = b[this.orderBy.column];
+              return this.orderBy.ascending ? 
+                (aVal > bVal ? 1 : -1) : 
+                (aVal < bVal ? 1 : -1);
+            });
+          }
+
+          return { data: result, error: null };
+        }
+      };
+
+      return queryChain;
+    };
+
     return {
-      select: (columns = "*") => ({
-        eq: (column: string, value: any) => ({
-          single: () => Promise.resolve({ data: null, error: null }),
-          execute: () => Promise.resolve({ data: [], error: null })
-        }),
-        order: (column: string) => ({
-          execute: () => Promise.resolve({ data: [], error: null })
-        }),
-        execute: () => Promise.resolve({ data: [], error: null })
-      }),
+      select: (columns = "*") => buildQuery(getMockData()),
       insert: (data: any) => ({
-        execute: () => Promise.resolve({ data: null, error: null })
+        select: () => ({
+          data: [{ ...data, id: `mock-${Date.now()}` }],
+          error: null
+        }),
+        execute: () => ({
+          data: [{ ...data, id: `mock-${Date.now()}` }],
+          error: null
+        })
       }),
       update: (data: any) => ({
         eq: (column: string, value: any) => ({
-          execute: () => Promise.resolve({ data: null, error: null })
+          execute: () => ({ data: [data], error: null })
         })
       }),
       delete: () => ({
         eq: (column: string, value: any) => ({
-          execute: () => Promise.resolve({ data: null, error: null })
+          execute: () => ({ data: null, error: null })
         })
       })
     };
