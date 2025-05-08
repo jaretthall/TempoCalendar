@@ -31,7 +31,7 @@ const Calendar = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
-  // Provider data with state management
+  // Provider data
   const [providers] = useState<any[]>([
     { id: "1", name: "Bibiana Patrick", color: "#8BC34A", isActive: true },
     { id: "2", name: "Joy Ferro", color: "#FF9800", isActive: true },
@@ -47,13 +47,13 @@ const Calendar = () => {
     { id: "12", name: "Heidi Kelly", color: "#F48FB1", isActive: true },
   ]);
 
-  // Clinic type data with state management
+  // Clinic type data
   const [clinicTypes] = useState<any[]>([
     { id: "1", name: "Clinica Medicos", color: "#4CAF50", isActive: true },
     { id: "2", name: "Urgent Care", color: "#FF9800", isActive: true },
   ]);
 
-  // Mock data for shifts
+  // Shifts data
   const [shifts, setShifts] = useState<Shift[]>([]);
 
   // Toggle sidebar collapsed state
