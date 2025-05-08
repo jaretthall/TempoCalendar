@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CalendarToolbar from "./CalendarToolbar";
 import MonthView from "./MonthView";
-import ThreeMonthView from "./ThreeMonthView";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import ShiftDialog from "../shifts/ShiftDialog";
@@ -10,40 +9,13 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { expandRecurringShift } from "@/utils/date-utils";
 
-interface Shift {
-  id: string;
-  providerId: string;
-  clinicTypeId: string;
-  startDate: Date;
-  endDate: Date;
-  isVacation: boolean;
-  notes?: string;
-  location?: string;
-  isRecurring?: boolean;
-  recurrencePattern?: string;
-}
-
-interface Provider {
-  id: string;
-  name: string;
-  color: string;
-  isActive: boolean;
-}
-
-interface ClinicType {
-  id: string;
-  name: string;
-  color: string;
-  isActive: boolean;
-}
-
 interface CalendarViewProps {
-  shifts?: Shift[];
-  providers?: Provider[];
-  clinicTypes?: ClinicType[];
-  onShiftClick?: (shift: Shift) => void;
+  shifts?: any[];
+  providers?: any[];
+  clinicTypes?: any[];
+  onShiftClick?: (shift: any) => void;
   onAddShift?: (date: Date) => void;
-  initialView?: "month" | "three-month";
+  initialView?: "month" | "side-by-side";
   initialDate?: Date;
 }
 
@@ -56,177 +28,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   initialView = "month",
   initialDate = new Date(),
 }) => {
-  const [currentView, setCurrentView] = useState<"month" | "three-month">(
+  const [currentView, setCurrentView] = useState<"month" | "side-by-side">(
     initialView,
   );
   const [currentDate, setCurrentDate] = useState<Date>(initialDate);
   const [filteredProviders, setFilteredProviders] = useState<string[]>([]);
   const [filteredClinicTypes, setFilteredClinicTypes] = useState<string[]>([]);
-  const [allShifts, setAllShifts] = useState<Shift[]>(shifts);
-  const [allProviders, setAllProviders] = useState<Provider[]>(providers);
-  const [allClinicTypes, setAllClinicTypes] =
-    useState<ClinicType[]>(clinicTypes);
+  const [allShifts, setAllShifts] = useState<any[]>(shifts);
+  const [allProviders, setAllProviders] = useState<any[]>(providers);
+  const [allClinicTypes, setAllClinicTypes] = useState<any[]>(clinicTypes);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showShiftDialog, setShowShiftDialog] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [selectedShift, setSelectedShift] = useState<any | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const { toast } = useToast();
-
-  // Fetch data from Supabase
-  const fetchCalendarData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Fetch providers
-      const { data: providersData, error: providersError } = await supabase
-        .from("providers")
-        .select("*")
-        .order("name");
-
-      if (providersError) {
-        console.error("Error fetching providers:", providersError);
-        // Fall back to mock data if database tables don't exist yet
-        setAllProviders(providers);
-      } else if (providersData && providersData.length > 0) {
-        // Format data for the component
-        const formattedProviders = providersData.map((p) => ({
-          id: p.id,
-          name: p.name,
-          color: p.color,
-          isActive: p.is_active,
-        }));
-        setAllProviders(formattedProviders);
-      } else {
-        // Use props data if no database data
-        setAllProviders(providers);
-      }
-
-      // Fetch clinic types
-      const { data: clinicTypesData, error: clinicTypesError } = await supabase
-        .from("clinic_types")
-        .select("*")
-        .order("name");
-
-      if (clinicTypesError) {
-        console.error("Error fetching clinic types:", clinicTypesError);
-        // Fall back to mock data if database tables don't exist yet
-        setAllClinicTypes(clinicTypes);
-      } else if (clinicTypesData && clinicTypesData.length > 0) {
-        const formattedClinicTypes = clinicTypesData.map((c) => ({
-          id: c.id,
-          name: c.name,
-          color: c.color,
-          isActive: c.is_active,
-        }));
-        setAllClinicTypes(formattedClinicTypes);
-      } else {
-        // Use props data if no database data
-        setAllClinicTypes(clinicTypes);
-      }
-
-      // Fetch shifts
-      const { data: shiftsData, error: shiftsError } = await supabase
-        .from("shifts")
-        .select("*")
-        .order("start_date");
-
-      if (shiftsError) {
-        console.error("Error fetching shifts:", shiftsError);
-        // Fall back to mock data if database tables don't exist yet
-        setAllShifts(shifts);
-      }
-
-      // Format shifts data if available
-      if (shiftsData && shiftsData.length > 0) {
-        const formattedShifts = shiftsData.map((s) => ({
-          id: s.id,
-          provider_id: s.provider_id,
-          clinic_type_id: s.clinic_type_id,
-          start_date: new Date(s.start_date),
-          end_date: new Date(s.end_date),
-          is_vacation: s.is_vacation || false,
-          notes: s.notes || "",
-          location: s.location || "",
-          is_recurring: s.is_recurring || false,
-          recurrence_pattern: s.recurrence_pattern || "",
-          created_at: s.created_at,
-          updated_at: s.updated_at
-        }));
-        setAllShifts(formattedShifts);
-      } else {
-        // Use props data if no database data
-        setAllShifts(shifts);
-      }
-    } catch (err) {
-      console.error("Error fetching calendar data:", err);
-      setError("Failed to load calendar data. Please try again later.");
-      toast({
-        title: "Error",
-        description: "Failed to load calendar data",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  // Set up real-time subscriptions
-  useEffect(() => {
-    fetchCalendarData();
-
-    // Set up real-time subscriptions for providers
-    const providersSubscription = supabase
-      .channel("providers-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "providers" },
-        (payload) => {
-          console.log("Providers change received:", payload);
-          fetchCalendarData();
-        },
-      )
-      .subscribe();
-
-    // Set up real-time subscriptions for clinic types
-    const clinicTypesSubscription = supabase
-      .channel("clinic-types-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "clinic_types" },
-        (payload) => {
-          console.log("Clinic types change received:", payload);
-          fetchCalendarData();
-        },
-      )
-      .subscribe();
-
-    // Set up real-time subscriptions for shifts
-    const shiftsSubscription = supabase
-      .channel("shifts-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "shifts" },
-        (payload) => {
-          console.log("Shifts change received:", payload);
-          fetchCalendarData();
-        },
-      )
-      .subscribe();
-
-    // Clean up subscriptions
-    return () => {
-      supabase.removeChannel(providersSubscription);
-      supabase.removeChannel(clinicTypesSubscription);
-      supabase.removeChannel(shiftsSubscription);
-    };
-  }, [fetchCalendarData]);
 
   // Filter shifts based on selected providers and clinic types
   const filteredShifts = useMemo(() => {
     // First expand any recurring shifts
     const expandedShifts = allShifts.flatMap(shift => {
-      // Only process shifts with recurrence data
       if (shift.isRecurring && shift.recurrencePattern) {
         return expandRecurringShift(shift);
       }
@@ -264,13 +85,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   // Handle view change
-  const handleViewChange = useCallback((view: "month" | "three-month") => {
+  const handleViewChange = useCallback((view: "month" | "side-by-side") => {
     setCurrentView(view);
   }, []);
 
   // Handle shift click
   const handleShiftClick = useCallback(
-    (shift: Shift) => {
+    (shift: any) => {
       setSelectedShift(shift);
       setShowShiftDialog(true);
       onShiftClick(shift);
@@ -298,7 +119,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Handle shift save
   const handleShiftSave = useCallback(
-    async (shiftData: Omit<Shift, "id">) => {
+    async (shiftData: any) => {
       try {
         if (selectedShift) {
           // Update existing shift
@@ -418,7 +239,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <Tabs
           value={currentView}
           onValueChange={(value) =>
-            handleViewChange(value as "month" | "three-month")
+            handleViewChange(value as "month" | "side-by-side")
           }
           className="flex-1"
         >
@@ -427,17 +248,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               date={currentDate}
               shifts={filteredShifts}
               providers={allProviders}
-              clinicTypes={allClinicTypes}
+              clinicTypes={[allClinicTypes[0]]}
               onShiftClick={handleShiftClick}
               onAddShift={handleAddShift}
             />
           </TabsContent>
-          <TabsContent value="three-month" className="mt-0 flex-1 h-full">
-            <ThreeMonthView
+          <TabsContent value="side-by-side" className="mt-0 flex-1 h-full">
+            <MonthView
               date={currentDate}
               shifts={filteredShifts}
               providers={allProviders}
-              clinicTypes={allClinicTypes}
+              clinicTypes={allClinicTypes.slice(0, 2)}
               onShiftClick={handleShiftClick}
               onAddShift={handleAddShift}
             />

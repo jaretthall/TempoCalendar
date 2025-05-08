@@ -29,7 +29,7 @@ import { supabase } from "@/lib/supabase";
 interface CalendarToolbarProps {
   date?: Date;
   onDateChange?: (date: Date) => void;
-  onViewChange?: (view: "month" | "three-month") => void;
+  onViewChange?: (view: "month" | "side-by-side") => void;
   onAddShift?: () => void;
   onFilterChange?: (filters: {
     providers: string[];
@@ -37,7 +37,7 @@ interface CalendarToolbarProps {
   }) => void;
   providers?: Array<{ id: string; name: string; color: string }>;
   clinicTypes?: Array<{ id: string; name: string; color: string }>;
-  view?: "month" | "three-month";
+  view?: "month" | "side-by-side";
   selectedProviders?: string[];
   selectedClinicTypes?: string[];
 }
@@ -85,68 +85,6 @@ const CalendarToolbar = ({
     }
   }, [initialSelectedProviders, initialSelectedClinicTypes]);
 
-  // Fetch data from Supabase
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // Fetch providers
-      const { data: providersData, error: providersError } = await supabase
-        .from("providers")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-
-      if (providersError) throw providersError;
-
-      // Fetch clinic types
-      const { data: clinicTypesData, error: clinicTypesError } = await supabase
-        .from("clinic_types")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-
-      if (clinicTypesError) throw clinicTypesError;
-
-      // Format data for the component
-      const formattedProviders = providersData.map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: p.color,
-      }));
-
-      const formattedClinicTypes = clinicTypesData.map((c) => ({
-        id: c.id,
-        name: c.name,
-        color: c.color,
-      }));
-
-      setAllProviders(formattedProviders);
-      setAllClinicTypes(formattedClinicTypes);
-
-      toast({
-        title: "Data refreshed",
-        description: "Calendar data has been updated",
-      });
-    } catch (error) {
-      console.error("Error fetching calendar data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh calendar data",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  // Initial data fetch
-  useEffect(() => {
-    // Only fetch if we don't have data already
-    if (providers.length === 0 || clinicTypes.length === 0) {
-      fetchData();
-    }
-  }, [providers.length, clinicTypes.length, fetchData]);
-
   // Navigation handlers
   const handlePrevMonth = () => {
     onDateChange(subMonths(date, 1));
@@ -160,7 +98,7 @@ const CalendarToolbar = ({
     onDateChange(new Date());
   };
 
-  const handleViewChange = (newView: "month" | "three-month") => {
+  const handleViewChange = (newView: "month" | "side-by-side") => {
     onViewChange(newView);
   };
 
@@ -336,11 +274,12 @@ const CalendarToolbar = ({
               Month
             </Button>
             <Button
-              variant={view === "three-month" ? "default" : "outline"}
+              variant={view === "side-by-side" ? "default" : "outline"}
               size="sm"
-              onClick={() => handleViewChange("three-month")}
+              onClick={() => handleViewChange("side-by-side")}
             >
-              <Grid3X3 className="mr-2 h-4 w-4" />3 Months
+              <Grid3X3 className="mr-2 h-4 w-4" />
+              Side by Side
             </Button>
           </div>
 
@@ -418,7 +357,10 @@ const CalendarToolbar = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={fetchData}
+            onClick={() => {
+              setIsLoading(true);
+              setTimeout(() => setIsLoading(false), 1000);
+            }}
             disabled={isLoading}
             title="Refresh data"
           >
