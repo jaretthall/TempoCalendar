@@ -14,10 +14,11 @@ import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -701,11 +702,9 @@ const ShiftDialog = ({
                   </Button>
                 )}
                 <div className="flex gap-2 ml-auto">
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline" onClick={onClose}>
-                      Cancel
-                    </Button>
-                  </DialogClose>
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
                   <Button type="submit" disabled={isLoading}>
                     {isLoading ? "Saving..." : isEditing ? "Update" : "Create"}
                   </Button>

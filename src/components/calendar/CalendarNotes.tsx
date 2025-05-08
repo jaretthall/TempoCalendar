@@ -61,14 +61,15 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
     try {
       setIsLoading(true);
 
-      // Fetch notes using maybeSingle() to handle no results
+      // Fetch notes
       const { data: notesData, error: notesError } = await supabase
         .from("calendar_notes")
         .select("*")
         .eq("date", formattedDate)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
-      if (notesError) {
+      if (notesError && notesError.code !== 'PGRST116') {
         console.error("Error fetching notes:", notesError);
         toast({
           title: "Error",
@@ -109,7 +110,7 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
       } else {
         setDisplayComments([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in fetchNotesAndComments:", error);
       toast({
         title: "Error",
@@ -173,7 +174,7 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
         .from("calendar_notes")
         .select("id")
         .eq("date", formattedDate)
-        .single();
+        .maybeSingle();
 
       let result;
 
@@ -242,9 +243,6 @@ const CalendarNotes: React.FC<CalendarNotesProps> = ({
           throw error;
         }
 
-        // We don't need to manually add the comment to the state
-        // as the realtime subscription will handle this
-        // But we'll clear the input and notify the user
         onAddComment(newComment);
         setNewComment("");
         toast({
