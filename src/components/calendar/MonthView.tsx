@@ -36,6 +36,7 @@ interface MonthViewProps {
   clinicTypes: any[];
   onShiftClick: (shift: any) => void;
   onAddShift: (date: Date) => void;
+  currentView?: string;
 }
 
 const MonthView: React.FC<MonthViewProps> = ({
@@ -45,6 +46,7 @@ const MonthView: React.FC<MonthViewProps> = ({
   clinicTypes = [],
   onShiftClick,
   onAddShift,
+  currentView = "month",
 }) => {
   const [selectedClinicTypes] = useState(clinicTypes.slice(0, 2));
   const [calendarNotes, setCalendarNotes] = useState("");
