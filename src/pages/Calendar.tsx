@@ -27,7 +27,7 @@ const Calendar = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
@@ -70,6 +70,7 @@ const Calendar = () => {
   // Handle shift click to edit
   const handleShiftClick = (shift: Shift) => {
     if (!isAdmin) return;
+    if (shiftDialogOpen) return;
     setSelectedShift(shift);
     setIsEditing(true);
     setShiftDialogOpen(true);
@@ -78,6 +79,7 @@ const Calendar = () => {
   // Handle adding a new shift
   const handleAddShift = (date: Date) => {
     if (!isAdmin) return;
+    if (shiftDialogOpen) return;
     setSelectedDate(date);
     setSelectedShift(null);
     setIsEditing(false);
@@ -86,15 +88,42 @@ const Calendar = () => {
 
   // Handle saving a shift
   const handleSaveShift = (shiftData: any) => {
-    const newShift = {
-      id: shiftData.id || `shift-${Date.now()}`,
-      ...shiftData,
-    };
+    try {
+      const newShift = {
+        id: shiftData.id || `shift-${Date.now()}`,
+        providerId: shiftData.providerId,
+        clinicTypeId: shiftData.clinicTypeId,
+        startDate: shiftData.startDate,
+        endDate: shiftData.endDate,
+        isVacation: shiftData.isVacation,
+        notes: shiftData.notes,
+        isRecurring: shiftData.isRecurring,
+        recurrencePattern: shiftData.recurrencePattern,
+        recurrenceEndDate: shiftData.recurrenceEndDate,
+        seriesId: shiftData.seriesId,
+      };
 
-    if (isEditing && selectedShift) {
-      setShifts(shifts.map(s => s.id === selectedShift.id ? newShift : s));
-    } else {
-      setShifts([...shifts, newShift]);
+      if (selectedShift) {
+        setShifts(shifts.map(s => s.id === selectedShift.id ? newShift : s));
+      } else {
+        setShifts([...shifts, newShift]);
+      }
+
+      toast({
+        title: selectedShift ? "Shift Updated" : "Shift Created",
+        description: "Changes saved successfully",
+      });
+
+      setShiftDialogOpen(false);
+      setSelectedShift(null);
+      setSelectedDate(null);
+    } catch (error) {
+      console.error("Error saving shift:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save shift",
+        variant: "destructive",
+      });
     }
   };
 
@@ -156,7 +185,7 @@ const Calendar = () => {
               clinicTypes={clinicTypes}
               onShiftClick={handleShiftClick}
               onAddShift={handleAddShift}
-              initialDate={selectedDate}
+              initialDate={selectedDate || new Date()}
             />
           </div>
         </main>
@@ -170,7 +199,7 @@ const Calendar = () => {
         onDelete={handleDeleteShift}
         shift={selectedShift}
         isEditing={isEditing}
-        initialDate={selectedDate}
+        initialDate={selectedDate || new Date()}
         providers={providers}
         clinicTypes={clinicTypes}
         shifts={shifts}
