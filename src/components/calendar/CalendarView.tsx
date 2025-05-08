@@ -132,7 +132,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               end_date: shiftData.endDate.toISOString(),
               is_vacation: shiftData.isVacation,
               notes: shiftData.notes || null,
-              location: shiftData.location || null,
             })
             .eq("id", selectedShift.id);
 
@@ -151,7 +150,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             end_date: shiftData.endDate.toISOString(),
             is_vacation: shiftData.isVacation,
             notes: shiftData.notes || null,
-            location: shiftData.location || null,
           });
 
           if (error) throw error;

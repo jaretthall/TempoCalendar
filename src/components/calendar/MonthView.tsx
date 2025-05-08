@@ -69,6 +69,7 @@ const MonthView: React.FC<MonthViewProps> = ({
               className="calendar-shift"
               style={{ backgroundColor: provider.color }}
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 onShiftClick(shift);
               }}
